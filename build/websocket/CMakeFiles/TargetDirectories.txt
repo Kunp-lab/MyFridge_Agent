@@ -1,0 +1,10 @@
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/install/strip.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/install/local.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/install.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/list_install_components.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/rebuild_cache.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/edit_cache.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/test.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/websocket.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/websocket_uninstall.dir
+/home/kunp/work/chuangyijqr/build/websocket/CMakeFiles/uninstall.dir

@@ -1,0 +1,274 @@
+[0.000000] (-) TimerEvent: {}
+[0.002539] (-) JobUnselected: {'identifier': 'websocket'}
+[0.002637] (test_pk) JobQueued: {'identifier': 'test_pk', 'dependencies': OrderedDict()}
+[0.002694] (test_pk) JobStarted: {'identifier': 'test_pk'}
+[0.041147] (test_pk) JobProgress: {'identifier': 'test_pk', 'progress': 'cmake'}
+[0.046566] (test_pk) JobProgress: {'identifier': 'test_pk', 'progress': 'build'}
+[0.046877] (test_pk) Command: {'cmd': ['/usr/bin/cmake', '--build', '/home/kunp/work/chuangyijqr/build/test_pk', '--', '-j16', '-l16'], 'cwd': '/home/kunp/work/chuangyijqr/build/test_pk', 'env': OrderedDict([('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'kunp'), ('GIT_ASKPASS', '/home/kunp/.vscode-server/bin/0f0d87fa9e96c856c5212fc86db137ac0d783365/extensions/git/dist/askpass.sh'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/opt/tros/opt/yaml_cpp_vendor/lib:/opt/tros/lib'), ('HOME', '/home/kunp'), ('OLDPWD', '/home/kunp/work/chuangyijqr/src'), ('TERM_PROGRAM_VERSION', '1.104.1'), ('VSCODE_IPC_HOOK_CLI', '/run/user/1000/vscode-ipc-6c04f185-e580-4fa7-90ed-0c8d41602134.sock'), ('PROXY_URL', 'http://10.255.255.254:7897'), ('ROS_PYTHON_VERSION', '3'), ('VSCODE_GIT_ASKPASS_MAIN', '/home/kunp/.vscode-server/bin/0f0d87fa9e96c856c5212fc86db137ac0d783365/extensions/git/dist/askpass-main.js'), ('VSCODE_GIT_ASKPASS_NODE', '/home/kunp/.vscode-server/bin/0f0d87fa9e96c856c5212fc86db137ac0d783365/node'), ('VSCODE_PYTHON_AUTOACTIVATE_GUARD', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', 'truecolor'), ('WSL_DISTRO_NAME', 'Ubuntu-20.04'), ('WAYLAND_DISPLAY', 'wayland-0'), ('COLCON_PREFIX_PATH', '/opt/tros'), ('ROS_DISTRO', 'foxy'), ('LOGNAME', 'kunp'), ('NAME', 'LAPTOP-066NL5N1'), ('WSL_INTEROP', '/run/WSL/152894_interop'), ('PULSE_SERVER', 'unix:/mnt/wslg/PulseServer'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('PKG_CONFIG_PATH', '/opt/tros/lib/x86_64-linux-gnu/pkgconfig:/opt/tros/lib/pkgconfig'), ('TERM', 'xterm-256color'), ('ROS_LOCALHOST_ONLY', '0'), ('PATH', '/home/kunp/.vscode-server/bin/0f0d87fa9e96c856c5212fc86db137ac0d783365/bin/remote-cli:/home/kunp/.local/bin:/opt/tros/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files (x86)/VMware/VMware Workstation/bin/:/mnt/c/Program Files/Common Files/Oracle/Java/javapath:/mnt/d/mc/java/bin/:/mnt/c/Program Files (x86)/Common Files/Oracle/Java/java8path:/mnt/c/Program Files (x86)/Common Files/Oracle/Java/javapath:/mnt/d/python/Scripts/:/mnt/d/python/:/mnt/c/Users/lenovo/AppData/Local/Programs/cursor/resources/app/bin:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/d/mingw64/bin:/mnt/c/Users/lenovo/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/lenovo/Desktop/python/PyCharm Community Edition 2021.2/bin:/mnt/c/Users/lenovo/AppData/Local/Programs/cursor/resources/app/bin:/mnt/d/phpstudy_pro/Extensions/MySQL5.7.26/bin:/mnt/d/phpstudy_pro/Extensions/php/php7.3.4nts:/mnt/d/Windows Kits/10/Windows Performance Toolkit/:/mnt/d/ana/Git/cmd:/mnt/c/Program Files (x86)/STMicroelectronics/STM32 ST-LINK Utility/ST-LINK Utility:/mnt/c/Program Files (x86)/Microsoft SQL Server/160/Tools/Binn/:/mnt/c/Program Files/Microsoft SQL Server/160/Tools/Binn/:/mnt/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/:/mnt/c/Program Files/Microsoft SQL Server/160/DTS/Binn/:/mnt/c/Program Files (x86)/Windows Kits/8.1/Windows Performance Toolkit/:/mnt/c/Users/lenovo/.conda/envs/automatic_vehicle/Library/bin:/mnt/c/Program Files/CMake/bin:/mnt/d/opencv/mingw-build/bin:/mnt/d/OpenCV-MinGW-Build-OpenCV-4.5.5-x64/OpenCV-MinGW-Build-OpenCV-4.5.5-x64/x64/mingw/bin:/mnt/d/anaconda:/mnt/d/anaconda/Scripts:/mnt/d/anaconda/Library/bin/:/mnt/d/anaconda/Library/mingw-w64/bin:/mnt/d/anaconda/Library/usr/bin:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files/Java/jdk-24/bin:/mnt/d/Microsoft VS Code/bin:/mnt/c/Program Files/Docker/Docker/resources/bin:/mnt/c/Users/lenovo/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/lenovo/Desktop/python/PyCharm Community Edition 2021.2/bin:/mnt/c/Users/lenovo/AppData/Local/Programs/Microsoft VS Code/bin:/mnt/d/phpstudy_pro/Extensions/MySQL5.7.26/bin:/mnt/d/phpstudy_pro/Extensions/php/php7.3.4nts:/mnt/c/Users/lenovo/AppData/Local/JetBrains/Toolbox/scripts:/mnt/d/pycharm/PyCharm Community Edition 2024.3.5/bin:/mnt/f/CLion 2025.2.1/bin:/mnt/c/Program Files/CMake/bin:/mnt/d/PyCharm 2025.1.3/bin:/mnt/e/scoop/shims:/snap/bin:/home/kunp/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand'), ('XDG_RUNTIME_DIR', '/run/user/1000/'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('VSCODE_GIT_IPC_HANDLE', '/run/user/1000/vscode-git-68665cc69d.sock'), ('TERM_PROGRAM', 'vscode'), ('hostip', '10.255.255.254'), ('AMENT_PREFIX_PATH', '/opt/tros'), ('SHELL', '/bin/bash'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('VSCODE_GIT_ASKPASS_EXTRA_ARGS', ''), ('PWD', '/home/kunp/work/chuangyijqr/build/test_pk'), ('XDG_DATA_DIRS', '/usr/local/share:/usr/share:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/tros/lib/python3.8/site-packages'), ('COLCON', '1'), ('WSL2_GUI_APPS_ENABLED', '1'), ('HOSTTYPE', 'x86_64'), ('CMAKE_PREFIX_PATH', '/opt/tros'), ('WSLENV', 'VSCODE_WSL_EXT_LOCATION/up')]), 'shell': False}
+[0.099305] (-) TimerEvent: {}
+[0.145484] (test_pk) StdoutLine: {'line': b'-- Found ament_cmake: 0.9.9 (/opt/tros/share/ament_cmake/cmake)\n'}
+[0.199504] (-) TimerEvent: {}
+[0.209945] (test_pk) StdoutLine: {'line': b'-- Using PYTHON_EXECUTABLE: /usr/bin/python3\n'}
+[0.299693] (-) TimerEvent: {}
+[0.400286] (-) TimerEvent: {}
+[0.500860] (-) TimerEvent: {}
+[0.546847] (test_pk) StdoutLine: {'line': b'-- Override CMake install command with custom implementation using symlinks instead of copying resources\n'}
+[0.566911] (test_pk) StdoutLine: {'line': b'-- Found rclcpp: 2.4.1 (/opt/tros/share/rclcpp/cmake)\n'}
+[0.601016] (-) TimerEvent: {}
+[0.701465] (-) TimerEvent: {}
+[0.801989] (-) TimerEvent: {}
+[0.902471] (-) TimerEvent: {}
+[0.994794] (test_pk) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c\n'}
+[0.998549] (test_pk) StdoutLine: {'line': b'-- Found rosidl_adapter: 1.2.1 (/opt/tros/share/rosidl_adapter/cmake)\n'}
+[1.002682] (-) TimerEvent: {}
+[1.103131] (-) TimerEvent: {}
+[1.203610] (-) TimerEvent: {}
+[1.304161] (-) TimerEvent: {}
+[1.404606] (-) TimerEvent: {}
+[1.505164] (-) TimerEvent: {}
+[1.605886] (-) TimerEvent: {}
+[1.706338] (-) TimerEvent: {}
+[1.806816] (-) TimerEvent: {}
+[1.907320] (-) TimerEvent: {}
+[2.007796] (-) TimerEvent: {}
+[2.108241] (-) TimerEvent: {}
+[2.208727] (-) TimerEvent: {}
+[2.309332] (-) TimerEvent: {}
+[2.409957] (-) TimerEvent: {}
+[2.510458] (-) TimerEvent: {}
+[2.610955] (-) TimerEvent: {}
+[2.711630] (-) TimerEvent: {}
+[2.812252] (-) TimerEvent: {}
+[2.912943] (-) TimerEvent: {}
+[3.013713] (-) TimerEvent: {}
+[3.114365] (-) TimerEvent: {}
+[3.214945] (-) TimerEvent: {}
+[3.315525] (-) TimerEvent: {}
+[3.416118] (-) TimerEvent: {}
+[3.516599] (-) TimerEvent: {}
+[3.617187] (-) TimerEvent: {}
+[3.717666] (-) TimerEvent: {}
+[3.818176] (-) TimerEvent: {}
+[3.918626] (-) TimerEvent: {}
+[4.019085] (-) TimerEvent: {}
+[4.119591] (-) TimerEvent: {}
+[4.220097] (-) TimerEvent: {}
+[4.320547] (-) TimerEvent: {}
+[4.421072] (-) TimerEvent: {}
+[4.521671] (-) TimerEvent: {}
+[4.622260] (-) TimerEvent: {}
+[4.722790] (-) TimerEvent: {}
+[4.823295] (-) TimerEvent: {}
+[4.923839] (-) TimerEvent: {}
+[5.024474] (-) TimerEvent: {}
+[5.125055] (-) TimerEvent: {}
+[5.225654] (-) TimerEvent: {}
+[5.326241] (-) TimerEvent: {}
+[5.426949] (-) TimerEvent: {}
+[5.527546] (-) TimerEvent: {}
+[5.628220] (-) TimerEvent: {}
+[5.728869] (-) TimerEvent: {}
+[5.829443] (-) TimerEvent: {}
+[5.929935] (-) TimerEvent: {}
+[6.030464] (-) TimerEvent: {}
+[6.131015] (-) TimerEvent: {}
+[6.231613] (-) TimerEvent: {}
+[6.332107] (-) TimerEvent: {}
+[6.432598] (-) TimerEvent: {}
+[6.533161] (-) TimerEvent: {}
+[6.633733] (-) TimerEvent: {}
+[6.734321] (-) TimerEvent: {}
+[6.834853] (-) TimerEvent: {}
+[6.935373] (-) TimerEvent: {}
+[7.035946] (-) TimerEvent: {}
+[7.136461] (-) TimerEvent: {}
+[7.237026] (-) TimerEvent: {}
+[7.337549] (-) TimerEvent: {}
+[7.438060] (-) TimerEvent: {}
+[7.538595] (-) TimerEvent: {}
+[7.639120] (-) TimerEvent: {}
+[7.739731] (-) TimerEvent: {}
+[7.840237] (-) TimerEvent: {}
+[7.940744] (-) TimerEvent: {}
+[8.041198] (-) TimerEvent: {}
+[8.141709] (-) TimerEvent: {}
+[8.242400] (-) TimerEvent: {}
+[8.342993] (-) TimerEvent: {}
+[8.443586] (-) TimerEvent: {}
+[8.544214] (-) TimerEvent: {}
+[8.644718] (-) TimerEvent: {}
+[8.745258] (-) TimerEvent: {}
+[8.845748] (-) TimerEvent: {}
+[8.946338] (-) TimerEvent: {}
+[9.046884] (-) TimerEvent: {}
+[9.147470] (-) TimerEvent: {}
+[9.247985] (-) TimerEvent: {}
+[9.348729] (-) TimerEvent: {}
+[9.449267] (-) TimerEvent: {}
+[9.549824] (-) TimerEvent: {}
+[9.650443] (-) TimerEvent: {}
+[9.751044] (-) TimerEvent: {}
+[9.851661] (-) TimerEvent: {}
+[9.952397] (-) TimerEvent: {}
+[10.052867] (-) TimerEvent: {}
+[10.153398] (-) TimerEvent: {}
+[10.253993] (-) TimerEvent: {}
+[10.354661] (-) TimerEvent: {}
+[10.455177] (-) TimerEvent: {}
+[10.555833] (-) TimerEvent: {}
+[10.656403] (-) TimerEvent: {}
+[10.756917] (-) TimerEvent: {}
+[10.857456] (-) TimerEvent: {}
+[10.958034] (-) TimerEvent: {}
+[11.058639] (-) TimerEvent: {}
+[11.159210] (-) TimerEvent: {}
+[11.259710] (-) TimerEvent: {}
+[11.360385] (-) TimerEvent: {}
+[11.461018] (-) TimerEvent: {}
+[11.561649] (-) TimerEvent: {}
+[11.662176] (-) TimerEvent: {}
+[11.762705] (-) TimerEvent: {}
+[11.863219] (-) TimerEvent: {}
+[11.963765] (-) TimerEvent: {}
+[12.064273] (-) TimerEvent: {}
+[12.164805] (-) TimerEvent: {}
+[12.265362] (-) TimerEvent: {}
+[12.365961] (-) TimerEvent: {}
+[12.466504] (-) TimerEvent: {}
+[12.567103] (-) TimerEvent: {}
+[12.667664] (-) TimerEvent: {}
+[12.768241] (-) TimerEvent: {}
+[12.868860] (-) TimerEvent: {}
+[12.969539] (-) TimerEvent: {}
+[13.070166] (-) TimerEvent: {}
+[13.170670] (-) TimerEvent: {}
+[13.271236] (-) TimerEvent: {}
+[13.371759] (-) TimerEvent: {}
+[13.404339] (test_pk) StdoutLine: {'line': b'-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp\n'}
+[13.471981] (-) TimerEvent: {}
+[13.474953] (test_pk) StdoutLine: {'line': b'-- Found rmw_implementation_cmake: 1.0.3 (/opt/tros/share/rmw_implementation_cmake/cmake)\n'}
+[13.477484] (test_pk) StdoutLine: {'line': b"-- Using RMW implementation 'rmw_fastrtps_cpp' as default\n"}
+[13.572238] (-) TimerEvent: {}
+[13.593669] (test_pk) StdoutLine: {'line': b'-- Found sensor_msgs: 2.0.5 (/opt/tros/share/sensor_msgs/cmake)\n'}
+[13.672468] (-) TimerEvent: {}
+[13.773017] (-) TimerEvent: {}
+[13.773454] (test_pk) StdoutLine: {'line': b'-- Found ai_msgs: 2.0.0 (/opt/tros/share/ai_msgs/cmake)\n'}
+[13.873247] (-) TimerEvent: {}
+[13.911571] (test_pk) StderrLine: {'line': b'STATUS"OpenCV \xe5\xba\x93\xe7\x9a\x84\xe4\xbd\x8d\xe7\xbd\xae: /usr/lib/x86_64-linux-gnu/cmake/opencv4"\n'}
+[13.915667] (test_pk) StdoutLine: {'line': b'-- Found ament_lint_auto: 0.9.6 (/opt/tros/share/ament_lint_auto/cmake)\n'}
+[13.973468] (-) TimerEvent: {}
+[14.071775] (test_pk) StdoutLine: {'line': b"-- Added test 'copyright' to check source files copyright and LICENSE\n"}
+[14.073650] (-) TimerEvent: {}
+[14.083025] (test_pk) StdoutLine: {'line': b"-- Added test 'cppcheck' to perform static code analysis on C / C++ code\n"}
+[14.083531] (test_pk) StdoutLine: {'line': b'-- Configured cppcheck include dirs: $<BUILD_INTERFACE:/home/kunp/work/chuangyijqr/src/test_pk/include>\n'}
+[14.083681] (test_pk) StdoutLine: {'line': b'-- Configured cppcheck exclude dirs and/or files: \n'}
+[14.094952] (test_pk) StdoutLine: {'line': b"-- Added test 'cpplint' to check C / C++ code against the Google style\n"}
+[14.095187] (test_pk) StdoutLine: {'line': b'-- Configured cpplint exclude dirs and/or files: \n'}
+[14.099882] (test_pk) StdoutLine: {'line': b"-- Added test 'lint_cmake' to check CMake code style\n"}
+[14.112766] (test_pk) StdoutLine: {'line': b"-- Added test 'uncrustify' to check C / C++ code style\n"}
+[14.112955] (test_pk) StdoutLine: {'line': b'-- Configured uncrustify additional arguments: \n'}
+[14.114600] (test_pk) StdoutLine: {'line': b"-- Added test 'xmllint' to check XML markup files\n"}
+[14.122356] (test_pk) StdoutLine: {'line': b'-- Configuring done\n'}
+[14.157428] (test_pk) StdoutLine: {'line': b'-- Generating done\n'}
+[14.172633] (test_pk) StdoutLine: {'line': b'-- Build files have been written to: /home/kunp/work/chuangyijqr/build/test_pk\n'}
+[14.173889] (-) TimerEvent: {}
+[14.234811] (test_pk) StdoutLine: {'line': b'\x1b[35m\x1b[1mScanning dependencies of target test_node\x1b[0m\n'}
+[14.274113] (-) TimerEvent: {}
+[14.316763] (test_pk) StdoutLine: {'line': b'[ 50%] \x1b[32mBuilding CXX object CMakeFiles/test_node.dir/src/test_node.cpp.o\x1b[0m\n'}
+[14.374346] (-) TimerEvent: {}
+[14.474938] (-) TimerEvent: {}
+[14.575544] (-) TimerEvent: {}
+[14.676006] (-) TimerEvent: {}
+[14.776659] (-) TimerEvent: {}
+[14.877244] (-) TimerEvent: {}
+[14.977781] (-) TimerEvent: {}
+[15.078328] (-) TimerEvent: {}
+[15.178776] (-) TimerEvent: {}
+[15.279226] (-) TimerEvent: {}
+[15.379640] (-) TimerEvent: {}
+[15.480154] (-) TimerEvent: {}
+[15.580712] (-) TimerEvent: {}
+[15.681334] (-) TimerEvent: {}
+[15.781905] (-) TimerEvent: {}
+[15.882354] (-) TimerEvent: {}
+[15.982846] (-) TimerEvent: {}
+[16.083376] (-) TimerEvent: {}
+[16.183876] (-) TimerEvent: {}
+[16.284546] (-) TimerEvent: {}
+[16.385159] (-) TimerEvent: {}
+[16.485670] (-) TimerEvent: {}
+[16.586229] (-) TimerEvent: {}
+[16.686670] (-) TimerEvent: {}
+[16.787159] (-) TimerEvent: {}
+[16.887847] (-) TimerEvent: {}
+[16.988371] (-) TimerEvent: {}
+[17.088936] (-) TimerEvent: {}
+[17.189578] (-) TimerEvent: {}
+[17.290102] (-) TimerEvent: {}
+[17.390645] (-) TimerEvent: {}
+[17.491372] (-) TimerEvent: {}
+[17.592017] (-) TimerEvent: {}
+[17.692597] (-) TimerEvent: {}
+[17.793077] (-) TimerEvent: {}
+[17.893589] (-) TimerEvent: {}
+[17.994212] (-) TimerEvent: {}
+[18.094755] (-) TimerEvent: {}
+[18.195348] (-) TimerEvent: {}
+[18.295937] (-) TimerEvent: {}
+[18.396495] (-) TimerEvent: {}
+[18.497047] (-) TimerEvent: {}
+[18.597747] (-) TimerEvent: {}
+[18.698362] (-) TimerEvent: {}
+[18.798962] (-) TimerEvent: {}
+[18.899549] (-) TimerEvent: {}
+[19.000273] (-) TimerEvent: {}
+[19.100843] (-) TimerEvent: {}
+[19.201417] (-) TimerEvent: {}
+[19.301952] (-) TimerEvent: {}
+[19.402627] (-) TimerEvent: {}
+[19.503253] (-) TimerEvent: {}
+[19.603752] (-) TimerEvent: {}
+[19.704207] (-) TimerEvent: {}
+[19.804754] (-) TimerEvent: {}
+[19.905408] (-) TimerEvent: {}
+[19.929941] (test_pk) StdoutLine: {'line': b'[100%] \x1b[32m\x1b[1mLinking CXX executable test_node\x1b[0m\n'}
+[20.005537] (-) TimerEvent: {}
+[20.106016] (-) TimerEvent: {}
+[20.206461] (-) TimerEvent: {}
+[20.307027] (-) TimerEvent: {}
+[20.407848] (-) TimerEvent: {}
+[20.508402] (-) TimerEvent: {}
+[20.608990] (-) TimerEvent: {}
+[20.709632] (-) TimerEvent: {}
+[20.810169] (-) TimerEvent: {}
+[20.910683] (-) TimerEvent: {}
+[21.011277] (-) TimerEvent: {}
+[21.111854] (-) TimerEvent: {}
+[21.212517] (-) TimerEvent: {}
+[21.313060] (-) TimerEvent: {}
+[21.331263] (test_pk) StdoutLine: {'line': b'[100%] Built target test_node\n'}
+[21.354433] (test_pk) CommandEnded: {'returncode': 0}
+[21.355781] (test_pk) JobProgress: {'identifier': 'test_pk', 'progress': 'install'}
+[21.380041] (test_pk) Command: {'cmd': ['/usr/bin/cmake', '--install', '/home/kunp/work/chuangyijqr/build/test_pk'], 'cwd': '/home/kunp/work/chuangyijqr/build/test_pk', 'env': OrderedDict([('LESSOPEN', '| /usr/bin/lesspipe %s'), ('USER', 'kunp'), ('GIT_ASKPASS', '/home/kunp/.vscode-server/bin/0f0d87fa9e96c856c5212fc86db137ac0d783365/extensions/git/dist/askpass.sh'), ('SHLVL', '1'), ('LD_LIBRARY_PATH', '/opt/tros/opt/yaml_cpp_vendor/lib:/opt/tros/lib'), ('HOME', '/home/kunp'), ('OLDPWD', '/home/kunp/work/chuangyijqr/src'), ('TERM_PROGRAM_VERSION', '1.104.1'), ('VSCODE_IPC_HOOK_CLI', '/run/user/1000/vscode-ipc-6c04f185-e580-4fa7-90ed-0c8d41602134.sock'), ('PROXY_URL', 'http://10.255.255.254:7897'), ('ROS_PYTHON_VERSION', '3'), ('VSCODE_GIT_ASKPASS_MAIN', '/home/kunp/.vscode-server/bin/0f0d87fa9e96c856c5212fc86db137ac0d783365/extensions/git/dist/askpass-main.js'), ('VSCODE_GIT_ASKPASS_NODE', '/home/kunp/.vscode-server/bin/0f0d87fa9e96c856c5212fc86db137ac0d783365/node'), ('VSCODE_PYTHON_AUTOACTIVATE_GUARD', '1'), ('DBUS_SESSION_BUS_ADDRESS', 'unix:path=/run/user/1000/bus'), ('COLORTERM', 'truecolor'), ('WSL_DISTRO_NAME', 'Ubuntu-20.04'), ('WAYLAND_DISPLAY', 'wayland-0'), ('COLCON_PREFIX_PATH', '/opt/tros'), ('ROS_DISTRO', 'foxy'), ('LOGNAME', 'kunp'), ('NAME', 'LAPTOP-066NL5N1'), ('WSL_INTEROP', '/run/WSL/152894_interop'), ('PULSE_SERVER', 'unix:/mnt/wslg/PulseServer'), ('_', '/usr/bin/colcon'), ('ROS_VERSION', '2'), ('PKG_CONFIG_PATH', '/opt/tros/lib/x86_64-linux-gnu/pkgconfig:/opt/tros/lib/pkgconfig'), ('TERM', 'xterm-256color'), ('ROS_LOCALHOST_ONLY', '0'), ('PATH', '/home/kunp/.vscode-server/bin/0f0d87fa9e96c856c5212fc86db137ac0d783365/bin/remote-cli:/home/kunp/.local/bin:/opt/tros/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files (x86)/VMware/VMware Workstation/bin/:/mnt/c/Program Files/Common Files/Oracle/Java/javapath:/mnt/d/mc/java/bin/:/mnt/c/Program Files (x86)/Common Files/Oracle/Java/java8path:/mnt/c/Program Files (x86)/Common Files/Oracle/Java/javapath:/mnt/d/python/Scripts/:/mnt/d/python/:/mnt/c/Users/lenovo/AppData/Local/Programs/cursor/resources/app/bin:/mnt/c/WINDOWS/system32:/mnt/c/WINDOWS:/mnt/c/WINDOWS/System32/Wbem:/mnt/c/WINDOWS/System32/WindowsPowerShell/v1.0/:/mnt/c/WINDOWS/System32/OpenSSH/:/mnt/d/mingw64/bin:/mnt/c/Users/lenovo/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/lenovo/Desktop/python/PyCharm Community Edition 2021.2/bin:/mnt/c/Users/lenovo/AppData/Local/Programs/cursor/resources/app/bin:/mnt/d/phpstudy_pro/Extensions/MySQL5.7.26/bin:/mnt/d/phpstudy_pro/Extensions/php/php7.3.4nts:/mnt/d/Windows Kits/10/Windows Performance Toolkit/:/mnt/d/ana/Git/cmd:/mnt/c/Program Files (x86)/STMicroelectronics/STM32 ST-LINK Utility/ST-LINK Utility:/mnt/c/Program Files (x86)/Microsoft SQL Server/160/Tools/Binn/:/mnt/c/Program Files/Microsoft SQL Server/160/Tools/Binn/:/mnt/c/Program Files/Microsoft SQL Server/Client SDK/ODBC/170/Tools/Binn/:/mnt/c/Program Files/Microsoft SQL Server/160/DTS/Binn/:/mnt/c/Program Files (x86)/Windows Kits/8.1/Windows Performance Toolkit/:/mnt/c/Users/lenovo/.conda/envs/automatic_vehicle/Library/bin:/mnt/c/Program Files/CMake/bin:/mnt/d/opencv/mingw-build/bin:/mnt/d/OpenCV-MinGW-Build-OpenCV-4.5.5-x64/OpenCV-MinGW-Build-OpenCV-4.5.5-x64/x64/mingw/bin:/mnt/d/anaconda:/mnt/d/anaconda/Scripts:/mnt/d/anaconda/Library/bin/:/mnt/d/anaconda/Library/mingw-w64/bin:/mnt/d/anaconda/Library/usr/bin:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files/Java/jdk-24/bin:/mnt/d/Microsoft VS Code/bin:/mnt/c/Program Files/Docker/Docker/resources/bin:/mnt/c/Users/lenovo/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/lenovo/Desktop/python/PyCharm Community Edition 2021.2/bin:/mnt/c/Users/lenovo/AppData/Local/Programs/Microsoft VS Code/bin:/mnt/d/phpstudy_pro/Extensions/MySQL5.7.26/bin:/mnt/d/phpstudy_pro/Extensions/php/php7.3.4nts:/mnt/c/Users/lenovo/AppData/Local/JetBrains/Toolbox/scripts:/mnt/d/pycharm/PyCharm Community Edition 2024.3.5/bin:/mnt/f/CLion 2025.2.1/bin:/mnt/c/Program Files/CMake/bin:/mnt/d/PyCharm 2025.1.3/bin:/mnt/e/scoop/shims:/snap/bin:/home/kunp/.vscode-server/data/User/globalStorage/github.copilot-chat/debugCommand'), ('XDG_RUNTIME_DIR', '/run/user/1000/'), ('DISPLAY', ':0'), ('LANG', 'C.UTF-8'), ('LS_COLORS', 'rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:mi=00:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arc=01;31:*.arj=01;31:*.taz=01;31:*.lha=01;31:*.lz4=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.tzo=01;31:*.t7z=01;31:*.zip=01;31:*.z=01;31:*.dz=01;31:*.gz=01;31:*.lrz=01;31:*.lz=01;31:*.lzo=01;31:*.xz=01;31:*.zst=01;31:*.tzst=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.alz=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.cab=01;31:*.wim=01;31:*.swm=01;31:*.dwm=01;31:*.esd=01;31:*.jpg=01;35:*.jpeg=01;35:*.mjpg=01;35:*.mjpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:'), ('VSCODE_GIT_IPC_HANDLE', '/run/user/1000/vscode-git-68665cc69d.sock'), ('TERM_PROGRAM', 'vscode'), ('hostip', '10.255.255.254'), ('AMENT_PREFIX_PATH', '/opt/tros'), ('SHELL', '/bin/bash'), ('LESSCLOSE', '/usr/bin/lesspipe %s %s'), ('VSCODE_GIT_ASKPASS_EXTRA_ARGS', ''), ('PWD', '/home/kunp/work/chuangyijqr/build/test_pk'), ('XDG_DATA_DIRS', '/usr/local/share:/usr/share:/var/lib/snapd/desktop'), ('PYTHONPATH', '/opt/tros/lib/python3.8/site-packages'), ('COLCON', '1'), ('WSL2_GUI_APPS_ENABLED', '1'), ('HOSTTYPE', 'x86_64'), ('CMAKE_PREFIX_PATH', '/opt/tros'), ('WSLENV', 'VSCODE_WSL_EXT_LOCATION/up')]), 'shell': False}
+[21.392899] (test_pk) StdoutLine: {'line': b'-- Install configuration: ""\n'}
+[21.393502] (test_pk) StdoutLine: {'line': b'-- Execute custom install script\n'}
+[21.394194] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/lib/test_pk/test_node\n'}
+[21.396626] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/package_run_dependencies/test_pk\n'}
+[21.398116] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/parent_prefix_path/test_pk\n'}
+[21.399311] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/ament_prefix_path.sh\n'}
+[21.400582] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/ament_prefix_path.dsv\n'}
+[21.401651] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/path.sh\n'}
+[21.408247] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/path.dsv\n'}
+[21.409563] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.bash\n'}
+[21.410485] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.sh\n'}
+[21.411487] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.zsh\n'}
+[21.412716] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.dsv\n'}
+[21.413244] (test_pk) StdoutLine: {'line': b'-- Symlinking: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/package.dsv\n'}
+[21.413453] (-) TimerEvent: {}
+[21.431261] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/packages/test_pk\n'}
+[21.433332] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/cmake/test_pkConfig.cmake\n'}
+[21.434643] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/cmake/test_pkConfig-version.cmake\n'}
+[21.435187] (test_pk) StdoutLine: {'line': b'-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/package.xml\n'}
+[21.440036] (test_pk) CommandEnded: {'returncode': 0}
+[21.489783] (test_pk) JobEnded: {'identifier': 'test_pk', 'rc': 0}
+[21.490840] (-) EventReactorShutdown: {}

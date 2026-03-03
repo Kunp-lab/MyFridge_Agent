@@ -1,0 +1,1 @@
+/home/kunp/work/chuangyijqr/build/websocket/ament_cmake_core/websocketConfig-version.cmake

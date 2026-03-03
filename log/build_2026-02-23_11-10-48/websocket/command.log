@@ -1,0 +1,6 @@
+Invoking command in '/home/kunp/work/chuangyijqr/build/websocket': /usr/bin/cmake /home/kunp/work/chuangyijqr/src/hobot_websocket -DCMAKE_INSTALL_PREFIX=/home/kunp/work/chuangyijqr/install/websocket
+Invoked command in '/home/kunp/work/chuangyijqr/build/websocket' returned '0': /usr/bin/cmake /home/kunp/work/chuangyijqr/src/hobot_websocket -DCMAKE_INSTALL_PREFIX=/home/kunp/work/chuangyijqr/install/websocket
+Invoking command in '/home/kunp/work/chuangyijqr/build/websocket': /usr/bin/cmake --build /home/kunp/work/chuangyijqr/build/websocket -- -j16 -l16
+Invoked command in '/home/kunp/work/chuangyijqr/build/websocket' returned '0': /usr/bin/cmake --build /home/kunp/work/chuangyijqr/build/websocket -- -j16 -l16
+Invoking command in '/home/kunp/work/chuangyijqr/build/websocket': /usr/bin/cmake --install /home/kunp/work/chuangyijqr/build/websocket
+Invoked command in '/home/kunp/work/chuangyijqr/build/websocket' returned '0': /usr/bin/cmake --install /home/kunp/work/chuangyijqr/build/websocket

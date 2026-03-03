@@ -1,0 +1,54 @@
+[0.038s] Invoking command in '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk': /usr/bin/cmake --build /home/kunp/work/chuangyijqr/src/test_pk/build/test_pk -- -j16 -l16
+[0.077s] -- Found ament_cmake: 0.9.9 (/opt/tros/share/ament_cmake/cmake)
+[0.109s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[0.348s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[0.359s] -- Found rclcpp: 2.4.1 (/opt/tros/share/rclcpp/cmake)
+[0.752s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[0.756s] -- Found rosidl_adapter: 1.2.1 (/opt/tros/share/rosidl_adapter/cmake)
+[12.531s] -- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+[12.584s] -- Found rmw_implementation_cmake: 1.0.3 (/opt/tros/share/rmw_implementation_cmake/cmake)
+[12.586s] -- Using RMW implementation 'rmw_fastrtps_cpp' as default
+[12.695s] -- Found sensor_msgs: 2.0.5 (/opt/tros/share/sensor_msgs/cmake)
+[12.869s] -- Found ai_msgs: 2.0.0 (/opt/tros/share/ai_msgs/cmake)
+[13.002s] -- Found ament_lint_auto: 0.9.6 (/opt/tros/share/ament_lint_auto/cmake)
+[13.079s] -- Added test 'copyright' to check source files copyright and LICENSE
+[13.114s] -- Added test 'cppcheck' to perform static code analysis on C / C++ code
+[13.114s] -- Configured cppcheck include dirs: $<BUILD_INTERFACE:/home/kunp/work/chuangyijqr/src/test_pk/include>
+[13.114s] -- Configured cppcheck exclude dirs and/or files: 
+[13.152s] -- Added test 'cpplint' to check C / C++ code against the Google style
+[13.152s] -- Configured cpplint exclude dirs and/or files: 
+[13.157s] -- Added test 'flake8' to check Python code syntax and style conventions
+[13.167s] -- Added test 'lint_cmake' to check CMake code style
+[13.172s] -- Added test 'pep257' to check Python code against some of the style conventions in PEP 257
+[13.208s] -- Added test 'uncrustify' to check C / C++ code style
+[13.208s] -- Configured uncrustify additional arguments: 
+[13.213s] -- Added test 'xmllint' to check XML markup files
+[13.217s] -- Configuring done
+[13.238s] -- Generating done
+[13.249s] -- Build files have been written to: /home/kunp/work/chuangyijqr/src/test_pk/build/test_pk
+[13.296s] [35m[1mScanning dependencies of target test_node[0m
+[13.342s] [ 66%] [32mBuilding CXX object CMakeFiles/test_node.dir/src/websocket/websocket.cpp.o[0m
+[13.342s] [ 66%] [32mBuilding CXX object CMakeFiles/test_node.dir/src/main.cpp.o[0m
+[16.627s] [100%] [32m[1mLinking CXX executable test_node[0m
+[17.919s] [100%] Built target test_node
+[17.943s] Invoked command in '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk' returned '0': /usr/bin/cmake --build /home/kunp/work/chuangyijqr/src/test_pk/build/test_pk -- -j16 -l16
+[17.971s] Invoking command in '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk': /usr/bin/cmake --install /home/kunp/work/chuangyijqr/src/test_pk/build/test_pk
+[17.983s] -- Install configuration: ""
+[17.983s] -- Execute custom install script
+[17.984s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/lib/test_pk/test_node
+[17.985s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/ament_index/resource_index/package_run_dependencies/test_pk
+[17.985s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/ament_index/resource_index/parent_prefix_path/test_pk
+[17.986s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/environment/ament_prefix_path.sh
+[17.986s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/environment/ament_prefix_path.dsv
+[17.987s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/environment/path.sh
+[17.987s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/environment/path.dsv
+[17.987s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/local_setup.bash
+[17.988s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/local_setup.sh
+[17.988s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/local_setup.zsh
+[17.988s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/local_setup.dsv
+[17.989s] -- Symlinking: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/package.dsv
+[18.006s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/ament_index/resource_index/packages/test_pk
+[18.006s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/cmake/test_pkConfig.cmake
+[18.007s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/cmake/test_pkConfig-version.cmake
+[18.007s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/package.xml
+[18.013s] Invoked command in '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk' returned '0': /usr/bin/cmake --install /home/kunp/work/chuangyijqr/src/test_pk/build/test_pk

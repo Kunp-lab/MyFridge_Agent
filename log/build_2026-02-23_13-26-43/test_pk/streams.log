@@ -1,0 +1,26 @@
+[0.033s] Invoking command in '/home/kunp/work/chuangyijqr/build/test_pk': /usr/bin/cmake --build /home/kunp/work/chuangyijqr/build/test_pk -- -j16 -l16
+[0.095s] [35m[1mScanning dependencies of target test_node[0m
+[0.112s] [ 50%] [32mBuilding CXX object CMakeFiles/test_node.dir/src/test_node.cpp.o[0m
+[0.159s] [100%] [32m[1mLinking CXX executable test_node[0m
+[0.544s] [100%] Built target test_node
+[0.564s] Invoked command in '/home/kunp/work/chuangyijqr/build/test_pk' returned '0': /usr/bin/cmake --build /home/kunp/work/chuangyijqr/build/test_pk -- -j16 -l16
+[0.589s] Invoking command in '/home/kunp/work/chuangyijqr/build/test_pk': /usr/bin/cmake --install /home/kunp/work/chuangyijqr/build/test_pk
+[0.600s] -- Install configuration: ""
+[0.600s] -- Execute custom install script
+[0.601s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/lib/test_pk/test_node
+[0.601s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/package_run_dependencies/test_pk
+[0.601s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/parent_prefix_path/test_pk
+[0.602s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/ament_prefix_path.sh
+[0.602s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/ament_prefix_path.dsv
+[0.603s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/path.sh
+[0.603s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/path.dsv
+[0.603s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.bash
+[0.604s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.sh
+[0.604s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.zsh
+[0.604s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.dsv
+[0.605s] -- Symlinking: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/package.dsv
+[0.622s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/packages/test_pk
+[0.622s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/cmake/test_pkConfig.cmake
+[0.622s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/cmake/test_pkConfig-version.cmake
+[0.623s] -- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/package.xml
+[0.628s] Invoked command in '/home/kunp/work/chuangyijqr/build/test_pk' returned '0': /usr/bin/cmake --install /home/kunp/work/chuangyijqr/build/test_pk

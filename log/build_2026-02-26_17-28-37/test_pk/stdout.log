@@ -1,0 +1,19 @@
+[100%] Built target test_node
+-- Install configuration: "Debug"
+-- Execute custom install script
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/lib/test_pk/test_node
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/package_run_dependencies/test_pk
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/parent_prefix_path/test_pk
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/ament_prefix_path.sh
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/ament_prefix_path.dsv
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/path.sh
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/environment/path.dsv
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.bash
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.sh
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.zsh
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/local_setup.dsv
+-- Symlinking: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/package.dsv
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/ament_index/resource_index/packages/test_pk
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/cmake/test_pkConfig.cmake
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/cmake/test_pkConfig-version.cmake
+-- Up-to-date symlink: /home/kunp/work/chuangyijqr/install/test_pk/share/test_pk/package.xml

@@ -1,0 +1,25 @@
+[0.032s] Invoking command in '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk': /usr/bin/cmake /home/kunp/work/chuangyijqr/src/test_pk -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk
+[0.566s] -- The C compiler identification is GNU 9.4.0
+[1.411s] -- The CXX compiler identification is GNU 9.4.0
+[1.829s] -- Check for working C compiler: /usr/bin/cc
+[2.267s] -- Check for working C compiler: /usr/bin/cc -- works
+[2.271s] -- Detecting C compiler ABI info
+[2.686s] -- Detecting C compiler ABI info - done
+[2.701s] -- Detecting C compile features
+[2.702s] -- Detecting C compile features - done
+[2.707s] -- Check for working CXX compiler: /usr/bin/c++
+[3.166s] -- Check for working CXX compiler: /usr/bin/c++ -- works
+[3.167s] -- Detecting CXX compiler ABI info
+[3.611s] -- Detecting CXX compiler ABI info - done
+[3.628s] -- Detecting CXX compile features
+[3.629s] -- Detecting CXX compile features - done
+[3.661s] -- Found ament_cmake: 0.9.9 (/opt/tros/share/ament_cmake/cmake)
+[3.690s] -- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+[3.690s] -- Using PYTHON_EXECUTABLE: /usr/bin/python3
+[3.903s] -- Override CMake install command with custom implementation using symlinks instead of copying resources
+[3.950s] -- Found rclcpp: 2.4.1 (/opt/tros/share/rclcpp/cmake)
+[4.385s] -- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+[4.398s] -- Found rosidl_adapter: 1.2.1 (/opt/tros/share/rosidl_adapter/cmake)
+[7.494s] -- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+[10.875s] -- Found FastRTPS: /opt/tros/include  
+[14.567s] Invoked command in '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk' returned '-2': /usr/bin/cmake /home/kunp/work/chuangyijqr/src/test_pk -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk

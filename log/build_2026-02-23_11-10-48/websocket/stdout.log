@@ -1,0 +1,205 @@
+-- The C compiler identification is GNU 9.4.0
+-- The CXX compiler identification is GNU 9.4.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Check for working CXX compiler: /usr/bin/c++
+-- Check for working CXX compiler: /usr/bin/c++ -- works
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 0.9.9 (/opt/tros/share/ament_cmake/cmake)
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Found rclcpp: 2.4.1 (/opt/tros/share/rclcpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Found rosidl_adapter: 1.2.1 (/opt/tros/share/rosidl_adapter/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "1.1.1f")  
+-- Found FastRTPS: /opt/tros/include  
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found rmw_implementation_cmake: 1.0.3 (/opt/tros/share/rmw_implementation_cmake/cmake)
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Failed
+-- Looking for pthread_create in pthreads
+-- Looking for pthread_create in pthreads - not found
+-- Looking for pthread_create in pthread
+-- Looking for pthread_create in pthread - found
+-- Found Threads: TRUE  
+-- Found sensor_msgs: 2.0.5 (/opt/tros/share/sensor_msgs/cmake)
+-- Found ai_msgs: 2.0.0 (/opt/tros/share/ai_msgs/cmake)
+-- Found hbm_img_msgs: 2.0.0 (/opt/tros/share/hbm_img_msgs/cmake)
+-- Found OpenCV: /usr (found suitable version "4.2.0", minimum required is "4") 
+-- Found ament_lint_auto: 0.9.6 (/opt/tros/share/ament_lint_auto/cmake)
+-- Added test 'copyright' to check source files copyright and LICENSE
+-- Added test 'cppcheck' to perform static code analysis on C / C++ code
+-- Configured cppcheck include dirs: /home/kunp/work/chuangyijqr/src/hobot_websocket/include;/home/kunp/work/chuangyijqr/src/hobot_websocket/include/websocket;/home/kunp/work/chuangyijqr/src/hobot_websocket/include/protobuf;/home/kunp/work/chuangyijqr/src/hobot_websocket/include/utils;/home/kunp/work/chuangyijqr/src/hobot_websocket/third_party/x86/protobuf/include;/home/kunp/work/chuangyijqr/src/hobot_websocket/third_party/x86/uWebSockets/include
+-- Configured cppcheck exclude dirs and/or files: 
+-- Added test 'cpplint' to check C / C++ code against the Google style
+-- Configured cpplint exclude dirs and/or files: 
+-- Added test 'flake8' to check Python code syntax and style conventions
+-- Added test 'lint_cmake' to check CMake code style
+-- Added test 'pep257' to check Python code against some of the style conventions in PEP 257
+-- Added test 'uncrustify' to check C / C++ code style
+-- Configured uncrustify additional arguments: 
+-- Added test 'xmllint' to check XML markup files
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/kunp/work/chuangyijqr/build/websocket
+[35m[1mScanning dependencies of target websocket[0m
+[ 28%] [32mBuilding CXX object CMakeFiles/websocket.dir/src/main.cpp.o[0m
+[ 28%] [32mBuilding CXX object CMakeFiles/websocket.dir/src/protobuf/x3.pb.cc.o[0m
+[ 42%] [32mBuilding CXX object CMakeFiles/websocket.dir/src/websocket/websocket.cpp.o[0m
+[ 57%] [32mBuilding CXX object CMakeFiles/websocket.dir/src/utils/threads/threadpool.cpp.o[0m
+[ 85%] [32mBuilding CXX object CMakeFiles/websocket.dir/src/server/uws_server.cpp.o[0m
+[ 85%] [32mBuilding CXX object CMakeFiles/websocket.dir/src/utils/time_helper.cpp.o[0m
+[100%] [32m[1mLinking CXX executable websocket[0m
+[100%] Built target websocket
+-- Install configuration: ""
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/websocket
+-- Set runtime path of "/home/kunp/work/chuangyijqr/install/websocket/lib/websocket/websocket" to ""
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/mime.types.default
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/koi-utf
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/scgi_params.default
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/scgi_params
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/mime.types
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/uwsgi_params.default
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/win-utf
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/nginx.conf
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/fastcgi.conf.default
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/fastcgi_params.default
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/nginx.conf.default
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/koi-win
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/uwsgi_params
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/fastcgi_params
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/conf/fastcgi.conf
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/styles
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/styles/normalize.css
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/index.html
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/images
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/images/checked.png
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/images/menu.png
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/images/logo.png
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/images/danger.png
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/images/disabled.png
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/images/close.png
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/images/noselect.png
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/data
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/assets/data/data.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/TogetheROS
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/TogetheROS/main.css
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/TogetheROS/render.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/TogetheROS/index.html
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/TogetheROS/main.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/demo-bundled.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/util.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/jquery-1.9.0.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/keyevent.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/videoskeleton.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/yuv-canvas.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/.DS_Store
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/data_box.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/h-canvas-bk.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/canvas.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/h-canvas.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/yuvcanvas.min.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/three.min.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/addGeometry-bk.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/PCDLoade-bk.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/shader
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/shader/basic.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/shader/index.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/dat.gui.min.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/head.fbx
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/TransformControls.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/MTLLoader.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/PCDLoader.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/addGeometry.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/FBXLoader.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/OrbitControls.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/OBJLoader.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/threejs/inflate.min.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/ajaxTransport.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/reconnecting-websocket.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/protobuf.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/require.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/three.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/helper.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/utils/config.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/protos
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/html/protos/x3.proto
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/demo-bundled.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/util.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/jquery-1.9.0.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/keyevent.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/videoskeleton.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/yuv-canvas.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/data_box.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/h-canvas-bk.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/canvas.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/h-canvas.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/yuvcanvas.min.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/three.min.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/addGeometry-bk.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/PCDLoade-bk.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/shader
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/shader/basic.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/shader/index.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/dat.gui.min.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/head.fbx
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/TransformControls.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/MTLLoader.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/PCDLoader.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/addGeometry.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/FBXLoader.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/OrbitControls.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/OBJLoader.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/threejs/inflate.min.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/ajaxTransport.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/reconnecting-websocket.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/protobuf.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/require.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/three.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/main.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/helper.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/config.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/utils/opencv.js
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/protos
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/x3/protos/x3.proto
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/logs
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/logs/README.md
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/logs/README_cn.md
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/libuWS.so
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/sbin/nginx
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket//launch
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket//launch/websocket_service.launch.py
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket//launch/websocket.launch.py
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/ament_index/resource_index/package_run_dependencies/websocket
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/ament_index/resource_index/parent_prefix_path/websocket
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/environment/ament_prefix_path.sh
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/environment/ament_prefix_path.dsv
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/environment/path.sh
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/environment/path.dsv
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/local_setup.bash
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/local_setup.sh
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/local_setup.zsh
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/local_setup.dsv
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/package.dsv
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/ament_index/resource_index/packages/websocket
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/cmake/websocketConfig.cmake
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/cmake/websocketConfig-version.cmake
+-- Installing: /home/kunp/work/chuangyijqr/install/websocket/share/websocket/package.xml

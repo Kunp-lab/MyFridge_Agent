@@ -1,0 +1,82 @@
+[0.466s] DEBUG:colcon:Command line arguments: ['/usr/bin/colcon', 'build', '--packages-select', 'test_pk', '--symlink-install']
+[0.466s] DEBUG:colcon:Parsed command line arguments: Namespace(allow_overriding=[], ament_cmake_args=None, base_paths=['.'], build_base='build', catkin_cmake_args=None, catkin_skip_building_tests=False, cmake_args=None, cmake_clean_cache=False, cmake_clean_first=False, cmake_force_configure=False, cmake_target=None, cmake_target_skip_unavailable=False, continue_on_error=False, event_handlers=None, executor='parallel', ignore_user_meta=False, install_base='install', log_base=None, log_level=None, main=<bound method BuildVerb.main of <colcon_core.verb.build.BuildVerb object at 0x708e766b6cd0>>, merge_install=False, metas=['./colcon.meta'], mixin=None, mixin_files=None, mixin_verb=('build',), packages_above=None, packages_above_and_dependencies=None, packages_above_depth=None, packages_end=None, packages_ignore=None, packages_ignore_regex=None, packages_select=['test_pk'], packages_select_build_failed=False, packages_select_by_dep=None, packages_select_regex=None, packages_select_test_failures=False, packages_skip=None, packages_skip_build_finished=False, packages_skip_by_dep=None, packages_skip_regex=None, packages_skip_test_passed=False, packages_skip_up_to=None, packages_start=None, packages_up_to=None, packages_up_to_regex=None, parallel_workers=16, paths=None, symlink_install=True, test_result_base=None, verb_extension=<colcon_core.verb.build.BuildVerb object at 0x708e766b6cd0>, verb_name='build', verb_parser=<colcon_mixin.mixin.mixin_argument.MixinArgumentDecorator object at 0x708e765946d0>)
+[0.670s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) check parameters
+[0.671s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) check parameters
+[0.672s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) check parameters
+[0.672s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) check parameters
+[0.672s] Level 1:colcon.colcon_core.package_discovery:discover_packages(colcon_meta) discover
+[0.672s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) discover
+[0.672s] INFO:colcon.colcon_core.package_discovery:Crawling recursively for packages in '/home/kunp/work/chuangyijqr/src/test_pk'
+[0.673s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ignore', 'ignore_ament_install']
+[0.674s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore'
+[0.674s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ignore_ament_install'
+[0.674s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_pkg']
+[0.674s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_pkg'
+[0.674s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['colcon_meta']
+[0.674s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'colcon_meta'
+[0.674s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extensions ['ros']
+[0.674s] Level 1:colcon.colcon_core.package_identification:_identify(.) by extension 'ros'
+[0.700s] DEBUG:colcon.colcon_core.package_identification:Package '.' with type 'ros.ament_cmake' and name 'test_pk'
+[0.700s] Level 1:colcon.colcon_core.package_discovery:discover_packages(recursive) using defaults
+[0.700s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) discover
+[0.700s] Level 1:colcon.colcon_core.package_discovery:discover_packages(ignore) using defaults
+[0.700s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) discover
+[0.700s] Level 1:colcon.colcon_core.package_discovery:discover_packages(path) using defaults
+[0.739s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) check parameters
+[0.740s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) discover
+[0.749s] DEBUG:colcon.colcon_installed_package_information.package_discovery:Found 295 installed packages in /opt/tros
+[0.751s] Level 1:colcon.colcon_core.package_discovery:discover_packages(prefix_path) using defaults
+[0.781s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'cmake_args' from command line to 'None'
+[0.782s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'cmake_target' from command line to 'None'
+[0.782s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'cmake_target_skip_unavailable' from command line to 'False'
+[0.782s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'cmake_clean_cache' from command line to 'False'
+[0.782s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'cmake_clean_first' from command line to 'False'
+[0.782s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'cmake_force_configure' from command line to 'False'
+[0.782s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'ament_cmake_args' from command line to 'None'
+[0.782s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'catkin_cmake_args' from command line to 'None'
+[0.782s] Level 5:colcon.colcon_core.verb:set package 'test_pk' build argument 'catkin_skip_building_tests' from command line to 'False'
+[0.782s] DEBUG:colcon.colcon_core.verb:Building package 'test_pk' with the following arguments: {'ament_cmake_args': None, 'build_base': '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk', 'catkin_cmake_args': None, 'catkin_skip_building_tests': False, 'cmake_args': None, 'cmake_clean_cache': False, 'cmake_clean_first': False, 'cmake_force_configure': False, 'cmake_target': None, 'cmake_target_skip_unavailable': False, 'install_base': '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk', 'merge_install': False, 'path': '/home/kunp/work/chuangyijqr/src/test_pk', 'symlink_install': True, 'test_result_base': None}
+[0.782s] INFO:colcon.colcon_core.executor:Executing jobs using 'parallel' executor
+[0.784s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete
+[0.785s] INFO:colcon.colcon_ros.task.ament_cmake.build:Building ROS package in '/home/kunp/work/chuangyijqr/src/test_pk' with build type 'ament_cmake'
+[0.785s] INFO:colcon.colcon_cmake.task.cmake.build:Building CMake package in '/home/kunp/work/chuangyijqr/src/test_pk'
+[0.787s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_core.shell.bat': Not used on non-Windows systems
+[0.788s] INFO:colcon.colcon_core.shell:Skip shell extension 'powershell' for command environment: Not usable outside of PowerShell
+[0.788s] DEBUG:colcon.colcon_core.shell:Skip shell extension 'dsv' for command environment
+[0.817s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoking command in '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk': /usr/bin/cmake /home/kunp/work/chuangyijqr/src/test_pk -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk
+[15.342s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete was interrupted
+[15.343s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete again
+[15.350s] Level 1:colcon.colcon_core.environment:create_environment_scripts_only(test_pk)
+[15.352s] DEBUG:colcon.colcon_core.event_handler.log_command:Invoked command in '/home/kunp/work/chuangyijqr/src/test_pk/build/test_pk' returned '-2': /usr/bin/cmake /home/kunp/work/chuangyijqr/src/test_pk -DAMENT_CMAKE_SYMLINK_INSTALL=1 -DCMAKE_INSTALL_PREFIX=/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk
+[15.358s] Level 1:colcon.colcon_core.environment:checking '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk' for CMake module files
+[15.359s] Level 1:colcon.colcon_core.environment:checking '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk' for CMake config files
+[15.361s] Level 1:colcon.colcon_core.environment:checking '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/bin'
+[15.361s] Level 1:colcon.colcon_core.environment:checking '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/lib/pkgconfig/test_pk.pc'
+[15.363s] Level 1:colcon.colcon_core.environment:checking '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/lib/python3.8/site-packages'
+[15.363s] Level 1:colcon.colcon_core.environment:checking '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/bin'
+[15.364s] INFO:colcon.colcon_core.shell:Creating package script '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/package.ps1'
+[15.367s] INFO:colcon.colcon_core.shell:Creating package descriptor '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/package.dsv'
+[15.368s] INFO:colcon.colcon_core.shell:Creating package script '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/package.sh'
+[15.370s] INFO:colcon.colcon_core.shell:Creating package script '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/package.bash'
+[15.372s] INFO:colcon.colcon_core.shell:Creating package script '/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/test_pk/package.zsh'
+[15.373s] Level 1:colcon.colcon_core.environment:create_file_with_runtime_dependencies(/home/kunp/work/chuangyijqr/src/test_pk/install/test_pk/share/colcon-core/packages/test_pk)
+[15.385s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:run_until_complete finished
+[15.385s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:closing loop
+[15.386s] DEBUG:colcon.colcon_parallel_executor.executor.parallel:loop closed
+[15.386s] DEBUG:colcon.colcon_core.event_reactor:joining thread
+[15.537s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.notify_send': Could not find 'notify-send'
+[15.538s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.terminal_notifier': Not used on non-Darwin systems
+[15.538s] INFO:colcon.colcon_core.plugin_system:Skipping extension 'colcon_notification.desktop_notification.win32': Not used on non-Windows systems
+[15.538s] INFO:colcon.colcon_notification.desktop_notification:Sending desktop notification using 'notify2'
+[15.540s] DEBUG:colcon.colcon_notification.desktop_notification.notify2:Failed to initialize notify2: org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.Notifications was not provided by any .service files
+[15.541s] DEBUG:colcon.colcon_core.event_reactor:joined thread
+[15.541s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/kunp/work/chuangyijqr/src/test_pk/install/local_setup.ps1'
+[15.544s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/kunp/work/chuangyijqr/src/test_pk/install/_local_setup_util_ps1.py'
+[15.546s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/kunp/work/chuangyijqr/src/test_pk/install/setup.ps1'
+[15.547s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/kunp/work/chuangyijqr/src/test_pk/install/local_setup.sh'
+[15.549s] INFO:colcon.colcon_core.shell:Creating prefix util module '/home/kunp/work/chuangyijqr/src/test_pk/install/_local_setup_util_sh.py'
+[15.550s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/kunp/work/chuangyijqr/src/test_pk/install/setup.sh'
+[15.553s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/kunp/work/chuangyijqr/src/test_pk/install/local_setup.bash'
+[15.554s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/kunp/work/chuangyijqr/src/test_pk/install/setup.bash'
+[15.557s] INFO:colcon.colcon_core.shell:Creating prefix script '/home/kunp/work/chuangyijqr/src/test_pk/install/local_setup.zsh'
+[15.558s] INFO:colcon.colcon_core.shell:Creating prefix chain script '/home/kunp/work/chuangyijqr/src/test_pk/install/setup.zsh'

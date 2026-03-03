@@ -1,0 +1,4 @@
+source;share/websocket/local_setup.bash
+source;share/websocket/local_setup.dsv
+source;share/websocket/local_setup.sh
+source;share/websocket/local_setup.zsh
