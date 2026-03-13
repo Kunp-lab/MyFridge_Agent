@@ -1,1 +1,0 @@
-/home/kunp/work/chuangyijqr/src/hobot_websocket/webservice/x3/utils/threejs/OBJLoader.js

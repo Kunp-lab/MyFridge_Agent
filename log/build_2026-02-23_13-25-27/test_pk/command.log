@@ -1,6 +1,0 @@
-Invoking command in '/home/kunp/work/chuangyijqr/build/test_pk': /usr/bin/cmake /home/kunp/work/chuangyijqr/src/test_pk -DCMAKE_INSTALL_PREFIX=/home/kunp/work/chuangyijqr/install/test_pk
-Invoked command in '/home/kunp/work/chuangyijqr/build/test_pk' returned '0': /usr/bin/cmake /home/kunp/work/chuangyijqr/src/test_pk -DCMAKE_INSTALL_PREFIX=/home/kunp/work/chuangyijqr/install/test_pk
-Invoking command in '/home/kunp/work/chuangyijqr/build/test_pk': /usr/bin/cmake --build /home/kunp/work/chuangyijqr/build/test_pk -- -j16 -l16
-Invoked command in '/home/kunp/work/chuangyijqr/build/test_pk' returned '0': /usr/bin/cmake --build /home/kunp/work/chuangyijqr/build/test_pk -- -j16 -l16
-Invoking command in '/home/kunp/work/chuangyijqr/build/test_pk': /usr/bin/cmake --install /home/kunp/work/chuangyijqr/build/test_pk
-Invoked command in '/home/kunp/work/chuangyijqr/build/test_pk' returned '0': /usr/bin/cmake --install /home/kunp/work/chuangyijqr/build/test_pk

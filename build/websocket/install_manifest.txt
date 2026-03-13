@@ -1,2 +1,0 @@
-/home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/logs/README.md
-/home/kunp/work/chuangyijqr/install/websocket/lib/websocket/webservice/logs/README_cn.md
