@@ -3,7 +3,10 @@
 
 #include "example_interfaces/srv/add_two_ints.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include <sqlite3.h>
 #include <string>
+
+#define DB_ADRESS "/home/kunp/work/CreativeRobot/database/fridge_smart.db"
 namespace CreativeRobot
 {
 class SqlServer : public rclcpp::Node
@@ -13,11 +16,12 @@ class SqlServer : public rclcpp::Node
     SqlServer(std::string nodeName);
     void init();
 
-    ~SqlServer() = default;
+    ~SqlServer();
 
   private:
     rclcpp::Service<example_interfaces::srv::AddTwoInts>::SharedPtr
         add_ints_server;
+    sqlite3 *db;
 };
 } // namespace CreativeRobot
 

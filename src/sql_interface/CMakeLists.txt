@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.10)
-project(sql_server)
+cmake_minimum_required(VERSION 3.5)
+project(sql_interface)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -17,32 +17,12 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(example_interfaces REQUIRED)
-find_package(SQLite3 REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
 
-set(SOURCES 
-src/main.cpp
-src/sql_server/sql_server_node.cpp)
+rosidl_default_generators(${PROJECT_NAME}
 
-
-add_executable(sql_server_node ${SOURCES})
-
-target_include_directories(sql_server_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-  )
-ament_target_dependencies(
-  sql_server_node
-  "rclcpp"
-  example_interfaces
-  SQLite3
 )
-
-install(TARGETS sql_server_node
-  DESTINATION lib/${PROJECT_NAME})
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
