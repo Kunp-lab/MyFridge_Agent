@@ -11,15 +11,15 @@ SqlServer::SqlServer(std::string nodeName = "SqlServer") : Node(nodeName)
     RCLCPP_INFO(this->get_logger(), "SqlServer started\n");
     init();
 }
-SqlServer::~SqlServer() { sqlite3_close(db); }
+SqlServer::~SqlServer() { sqlite3_close(_db); }
 void SqlServer::init()
 {
     // sqlite init
-    int rc = sqlite3_open(DB_ADRESS, &db);
-    if (rc)
+    _rc = sqlite3_open(DB_ADRESS, &_db);
+    if (_rc)
     {
         RCLCPP_ERROR(this->get_logger(), "Can't open database: %s\n",
-                     sqlite3_errmsg(db));
+                     sqlite3_errmsg(_db));
         exit(0);
     }
     else
@@ -28,14 +28,20 @@ void SqlServer::init()
     }
 
     // rclcpp init
-    add_ints_server = this->create_service<example_interfaces::srv::AddTwoInts>(
+    _search_server = this->create_service<example_interfaces::srv::AddTwoInts>(
         "add_two_ints_srv",
         [this](
             const std::shared_ptr<example_interfaces::srv::AddTwoInts::Request>
                 req,
             std::shared_ptr<example_interfaces::srv::AddTwoInts::Response> resp)
         {
-            RCLCPP_INFO(this->get_logger(), "a:%d, b:%d\n", req->a, req->b);
+            // test
+            char *sql;
+            sql = "SELECT * from ingredients";
+            this->_rc = sqlite3_exec(this->_db, db, sql, callback, (void *)data,
+                                     &zErrMsg)
+                // test
+                RCLCPP_INFO(this->get_logger(), "a:%d, b:%d\n", req->a, req->b);
             resp->sum = req->a + req->b;
         });
 }

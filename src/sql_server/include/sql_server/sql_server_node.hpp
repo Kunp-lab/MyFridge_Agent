@@ -20,8 +20,10 @@ class SqlServer : public rclcpp::Node
 
   private:
     rclcpp::Service<example_interfaces::srv::AddTwoInts>::SharedPtr
-        add_ints_server;
-    sqlite3 *db;
+        _search_server;
+    sqlite3 *_db;
+    int _rc;
+    int search_callback(void *resp, int argc, char **argv, char **azColName);
 };
 } // namespace CreativeRobot
 
