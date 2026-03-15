@@ -23,7 +23,14 @@ class SqlServer : public rclcpp::Node
         _search_server;
     sqlite3 *_db;
     int _rc;
-    int search_callback(void *resp, int argc, char **argv, char **azColName);
+    static int sqlCallback(void *resp, int argc, char **argv, char **azColName);
+};
+struct SqlData
+{
+    std::string mode;
+    int a;
+    int b;
+    int sum;
 };
 } // namespace CreativeRobot
 
