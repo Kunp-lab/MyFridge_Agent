@@ -1,9 +1,9 @@
 #if !defined(__SQL_SERVER_NODE_HPP__)
 #define __SQL_SERVER_NODE_HPP__
 
-#include "example_interfaces/srv/add_two_ints.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sql_interface/srv/sql_operation.hpp"
+#include <memory>
 #include <sqlite3.h>
 #include <string>
 
@@ -25,12 +25,27 @@ class SqlServerNode : public rclcpp::Node
     int _rc;
     static int sqlCallback(void *resp, int argc, char **argv, char **azColName);
 };
+
+enum class Operation : uint8_t
+{
+    APPEND = 1,
+    DELETE = 2,
+    MODIFY = 3,
+    SELECT = 4
+};
+
 struct SqlData
 {
-    std::string mode;
-    int a;
-    int b;
-    int sum;
+    Operation op;
+    uint32_t id;
+    std::string name;
+    std::string category;
+    uint32_t expiry_date;
+    std::string location;
+    float calories_per_unit;
+    std::string nutritional_info;
+    std::string notes;
+    bool is_success;
 };
 } // namespace CreativeRobot
 

@@ -1,4 +1,4 @@
-string operation
+uint8 operation
 uint32 id 
 string name
 string category
