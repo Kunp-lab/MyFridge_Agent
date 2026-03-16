@@ -1,18 +1,19 @@
 #include "sql_server/sql_server_node.hpp"
 namespace CreativeRobot
 {
-SqlServer::SqlServer() : Node("SqlServer")
+SqlServerNode::SqlServerNode() : Node("SqlServerNode")
 {
-    RCLCPP_INFO(this->get_logger(), "SqlServer started\n");
+    RCLCPP_INFO(this->get_logger(), "SqlServerNode started\n");
     init();
 }
-SqlServer::SqlServer(std::string nodeName = "SqlServer") : Node(nodeName)
+SqlServerNode::SqlServerNode(std::string nodeName = "SqlServerNode")
+    : Node(nodeName)
 {
-    RCLCPP_INFO(this->get_logger(), "SqlServer started\n");
+    RCLCPP_INFO(this->get_logger(), "SqlServerNode started\n");
     init();
 }
-SqlServer::~SqlServer() { sqlite3_close(_db); }
-void SqlServer::init()
+SqlServerNode::~SqlServerNode() { sqlite3_close(_db); }
+void SqlServerNode::init()
 {
     // sqlite init
     _rc = sqlite3_open(DB_ADRESS, &_db);
@@ -28,20 +29,20 @@ void SqlServer::init()
     }
 
     // rclcpp init
-    _search_server = this->create_service<example_interfaces::srv::AddTwoInts>(
-        "add_two_ints_srv",
-        [this](
-            const std::shared_ptr<example_interfaces::srv::AddTwoInts::Request>
-                req,
-            std::shared_ptr<example_interfaces::srv::AddTwoInts::Response> resp)
+    _sql_server = this->create_service<sql_interface::srv::SQLOperation>(
+        "sql_operation",
+        [this](const std::shared_ptr<sql_interface::srv::SQLOperation::Request>
+                   req,
+               std::shared_ptr<sql_interface::srv::SQLOperation::Response> resp)
         {
             // test
             char *sql;
             char *zErrMsg = 0;
             sql = "SELECT * from ingredients";
             SqlData data{"search", req->a, req->b, 0};
-            this->_rc = sqlite3_exec(this->_db, sql, &SqlServer::sqlCallback,
-                                     (void *)&data, &zErrMsg);
+            this->_rc =
+                sqlite3_exec(this->_db, sql, &SqlServerNode::sqlCallback,
+                             (void *)&data, &zErrMsg);
             // test
             if (this->_rc != SQLITE_OK)
             {
@@ -58,7 +59,8 @@ void SqlServer::init()
         });
 }
 
-int SqlServer::sqlCallback(void *data, int argc, char **argv, char **azColName)
+int SqlServerNode::sqlCallback(void *data, int argc, char **argv,
+                               char **azColName)
 {
     auto *data_stru = static_cast<SqlData *>(data);
     if (data_stru->mode == "search")

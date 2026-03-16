@@ -20,9 +20,10 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 
-rosidl_default_generators(${PROJECT_NAME}
-
+rosidl_generate_interfaces(${PROJECT_NAME}
+"srv/SQLOperation.srv"
 )
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

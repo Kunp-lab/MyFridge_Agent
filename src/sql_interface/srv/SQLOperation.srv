@@ -1,0 +1,21 @@
+string operation
+uint32 id 
+string name
+string category
+uint32 expiry_date
+string location
+float32 calories_per_unit
+string nutritional_info
+string notes
+
+---
+
+bool is_success
+uint32 id 
+string name
+string category
+uint32 expiry_date
+string location
+float32 calories_per_unit
+string nutritional_info
+string notes

@@ -2,25 +2,14 @@ CREATE TABLE ingredients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     category TEXT NOT NULL,
-    sub_category TEXT,
-    quantity REAL NOT NULL DEFAULT 0,
-    unit TEXT NOT NULL,
-    purchase_date DATE,
-    expiry_date DATE,
+    expiry_date INTEGER,
     location TEXT,
-    storage_type TEXT DEFAULT 'refrigerator',
-    min_quantity REAL DEFAULT 1,
-    max_quantity REAL DEFAULT 10,
-    is_perishable BOOLEAN DEFAULT 1,
     calories_per_unit REAL,
     nutritional_info TEXT,
-    barcode TEXT,
-    brand TEXT,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE TABLE sqlite_sequence(name,seq);
 CREATE TABLE inventory_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ingredient_id INTEGER NOT NULL,

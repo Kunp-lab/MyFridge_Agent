@@ -3,24 +3,24 @@
 
 #include "example_interfaces/srv/add_two_ints.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "sql_interface/srv/sql_operation.hpp"
 #include <sqlite3.h>
 #include <string>
 
 #define DB_ADRESS "/home/kunp/work/CreativeRobot/database/fridge_smart.db"
 namespace CreativeRobot
 {
-class SqlServer : public rclcpp::Node
+class SqlServerNode : public rclcpp::Node
 {
   public:
-    SqlServer();
-    SqlServer(std::string nodeName);
+    SqlServerNode();
+    SqlServerNode(std::string nodeName);
     void init();
 
-    ~SqlServer();
+    ~SqlServerNode();
 
   private:
-    rclcpp::Service<example_interfaces::srv::AddTwoInts>::SharedPtr
-        _search_server;
+    rclcpp::Service<sql_interface::srv::SQLOperation>::SharedPtr _sql_server;
     sqlite3 *_db;
     int _rc;
     static int sqlCallback(void *resp, int argc, char **argv, char **azColName);

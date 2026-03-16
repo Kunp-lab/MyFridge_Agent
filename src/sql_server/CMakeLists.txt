@@ -20,6 +20,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(example_interfaces REQUIRED)
 find_package(SQLite3 REQUIRED)
+find_package(sql_interface REQUIRED)
 
 
 set(SOURCES 
@@ -38,6 +39,7 @@ ament_target_dependencies(
   "rclcpp"
   example_interfaces
   SQLite3
+  sql_interface
 )
 
 install(TARGETS sql_server_node
