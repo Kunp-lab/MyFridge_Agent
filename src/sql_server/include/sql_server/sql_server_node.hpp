@@ -7,7 +7,7 @@
 #include <sqlite3.h>
 #include <string>
 
-#define DB_ADRESS "/home/kunp/work/CreativeRobot/database/fridge_smart.db"
+#define DB_ADRESS "/home/kunp/work/CreativeRobot/database/my_fridge"
 namespace CreativeRobot
 {
 class SqlServerNode : public rclcpp::Node
@@ -23,7 +23,6 @@ class SqlServerNode : public rclcpp::Node
     rclcpp::Service<sql_interface::srv::SQLOperation>::SharedPtr _sql_server;
     sqlite3 *_db;
     int _rc;
-    static int sqlCallback(void *resp, int argc, char **argv, char **azColName);
 };
 
 enum class Operation : uint8_t

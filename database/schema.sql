@@ -1,6 +1,6 @@
 CREATE TABLE ingredients (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
     category TEXT NOT NULL,
     expiry_date INTEGER,
     location TEXT,
