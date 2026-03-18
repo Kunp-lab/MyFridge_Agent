@@ -65,12 +65,75 @@ class StandbyScreen(QWidget):
         """简易节气推算（演示用）"""
         month = datetime.now().month
         day = datetime.now().day
-        if month == 3 and day < 20: return "惊 蛰"
-        elif month == 3 and day >= 20: return "春 分"
-        elif month == 4 and day < 20: return "清 明"
-        elif month == 4 and day >= 20: return "谷 雨"
-        # ... 可自行补全 ...
-        return "立 秋" 
+        if not (1 <= month <= 12) or not (1 <= day <= 31):
+            return "无效日期"
+
+        # 春季
+        if month == 2 and day >= 3 or month == 1 and day >= 20:   # 大寒 ~ 立春
+            if month == 1 or (month == 2 and day < 19):
+                return "立 春" if day >= 4 else "大 寒"  # 更精确点可细分，但通常立春2/3-5
+        # 下面用 elif 链式判断更清晰
+
+        if month == 2:
+            if day < 19: return "立 春"
+            else:        return "雨 水"   # 雨水 ≈ 2月18-20日
+
+        elif month == 3:
+            if day < 6:  return "雨 水"
+            elif day < 20: return "惊 蛰"   # 惊蛰 ≈ 3月5-7日
+            else:        return "春 分"     # 春分 ≈ 3月20-21日
+
+        elif month == 4:
+            if day < 5:  return "春 分"
+            elif day < 20: return "清 明"   # 清明 ≈ 4月4-6日
+            else:        return "谷 雨"     # 谷雨 ≈ 4月19-21日
+
+        elif month == 5:
+            if day < 6:  return "谷 雨"
+            elif day < 21: return "立 夏"   # 立夏 ≈ 5月5-7日
+            else:        return "小 满"     # 小满 ≈ 5月20-22日
+
+        elif month == 6:
+            if day < 6:  return "小 满"
+            elif day < 21: return "芒 种"   # 芒种 ≈ 6月5-7日
+            else:        return "夏 至"     # 夏至 ≈ 6月21-22日
+
+        elif month == 7:
+            if day < 8:  return "夏 至"
+            elif day < 23: return "小 暑"   # 小暑 ≈ 7月7-8日
+            else:        return "大 暑"     # 大暑 ≈ 7月22-24日
+
+        elif month == 8:
+            if day < 8:  return "大 暑"
+            elif day < 23: return "立 秋"   # 立秋 ≈ 8月7-8日
+            else:        return "处 暑"     # 处暑 ≈ 8月22-24日
+
+        elif month == 9:
+            if day < 8:  return "处 暑"
+            elif day < 23: return "白 露"   # 白露 ≈ 9月7-9日
+            else:        return "秋 分"     # 秋分 ≈ 9月22-24日
+
+        elif month == 10:
+            if day < 9:  return "秋 分"
+            elif day < 24: return "寒 露"   # 寒露 ≈ 10月8-9日
+            else:        return "霜 降"     # 霜降 ≈ 10月23-24日
+
+        elif month == 11:
+            if day < 8:  return "霜 降"
+            elif day < 23: return "立 冬"   # 立冬 ≈ 11月7-8日
+            else:        return "小 雪"     # 小雪 ≈ 11月22-23日
+
+        elif month == 12:
+            if day < 7:  return "小 雪"
+            elif day < 22: return "大 雪"   # 大雪 ≈ 12月6-8日
+            else:        return "冬 至"     # 冬至 ≈ 12月21-23日
+
+        elif month == 1:
+            if day < 6:  return "冬 至"
+            elif day < 20: return "小 寒"   # 小寒 ≈ 1月5-7日
+            else:        return "大 寒"     # 大寒 ≈ 1月19-21日
+
+        return "未知节气"
 
     def update_time(self):
         self.current_time = QTime.currentTime()
