@@ -1,11 +1,12 @@
 from rclpy.node import Node
 from .display_component import *
 from sql_interface.srv import SQLOperation
-
+import rclpy
 class DisplayNode(Node):
     def __init__(self,name:str) -> None:
         super().__init__(node_name=name)
         self.get_logger().info("DisplayNode started")
+        self.ros_part_init()
         self.app = QApplication(sys.argv)
         self.fridge = SmartFridgeUI()
         self.fridge.show()
@@ -36,4 +37,18 @@ class DisplayNode(Node):
                 self.fridge.set_food_item(r, c, name, days, feats, precs, img)
                 idx += 1    
     def ros_part_init(self):
-        self.clients_sql = self.create_client()
+        self.clients_sql = self.create_client(SQLOperation,"/sql_operation")
+
+    def SqlOpCallback_(self, result_future):
+        response = result_future.result()
+        self.get_logger().info(f"收到返回结果：{response.sum}")
+    
+    def SqlOpSend(self, a, b):
+        while rclpy.ok() and self.clients_sql.wait_for_service(1)==False:
+            self.get_logger().info(f"等待服务端上线....")
+            
+        request = SQLOperation.Request()
+        request.operation = 4 
+        """
+        """
+        self.clients_sql.call_async(request).add_done_callback(self.SqlOpCallback_)
