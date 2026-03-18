@@ -201,7 +201,7 @@ void SqlServerNode::init()
 
             case Operation::SELECT:
             {
-                // SELECT 根据 location 查询单条记录
+                // SELECT 根据 id 查询单条记录
                 const char *sql =
                     "SELECT id, name, category, expiry_date, location, "
                     "calories_per_unit, nutritional_info, notes "
@@ -216,9 +216,7 @@ void SqlServerNode::init()
                     resp->notes = sqlite3_errmsg(_db);
                     break;
                 }
-
-                sqlite3_bind_text(stmt, 1, req->location.c_str(), -1,
-                                  SQLITE_TRANSIENT);
+                sqlite3_bind_int(stmt, 1, req->id);
 
                 rc = sqlite3_step(stmt);
                 if (rc == SQLITE_ROW)

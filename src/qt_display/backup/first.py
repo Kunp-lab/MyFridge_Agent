@@ -711,7 +711,6 @@ class SmartFridgeUI(QMainWindow):
         if 0 <= row <= 2 and 0 <= col <= 2:
             self.food_grids[row][col].update_data(name, days_left, features, precautions, image_path)
 
-
 # ==========================================
 # 程序入口
 # ==========================================
