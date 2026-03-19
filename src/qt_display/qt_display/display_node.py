@@ -5,12 +5,13 @@ from sql_interface.srv import SQLOperation
 import rclpy
 import numpy as np
 class DisplayNode(Node):
-    def __init__(self,name:str) -> None:
+    def __init__(self,name:str,sem:threading.Semaphore,sleep_event:threading.Event) -> None:
         super().__init__(node_name=name)
         self.get_logger().info("DisplayNode started")
         self.init()
         self.ingredient = [[str,int,[str],[str]] for _ in range(9)]
-
+        self.sem:threading.Semaphore = sem
+        self.sleep_event:threading.Event = sleep_event
         pass
     
     def testSetEnv(self):
@@ -47,10 +48,12 @@ class DisplayNode(Node):
     def SqlOpCallback_(self, result_future):
         response = SQLOperation.Response()
         response = result_future.result()
-        self.ingredient[response.id-1][0] =response.name
-        self.ingredient[response.id-1][1] =response.expiry_date
-        self.ingredient[response.id-1][2] =[response.nutritional_info]
-        self.ingredient[response.id-1][3] =[response.notes]
+        with self.sem:
+            self.ingredient[response.id-1][0] =response.name
+            self.ingredient[response.id-1][1] =response.expiry_date
+            self.ingredient[response.id-1][2] =[response.nutritional_info]
+            self.ingredient[response.id-1][3] =[response.notes]
+            self.sleep_event.set()
 
     
     def SqlOpSend_(self, id):
@@ -64,7 +67,7 @@ class DisplayNode(Node):
 
 
 class RosThread(threading.Thread):
-    def __init__(self,node:DisplayNode,sem:threading.Semaphore):
+    def __init__(self,node:DisplayNode):
         super().__init__()
         self.node = node
         self.daemon = True
