@@ -9,7 +9,8 @@ class DisplayNode(Node):
         super().__init__(node_name=name)
         self.get_logger().info("DisplayNode started")
         self.init()
-        self.ingredient = [{}]*9
+        self.ingredient = [[str,int,[str],[str]] for _ in range(9)]
+
         pass
     
     def testSetEnv(self):
@@ -46,7 +47,11 @@ class DisplayNode(Node):
     def SqlOpCallback_(self, result_future):
         response = SQLOperation.Response()
         response = result_future.result()
-        self.ingredient[response.id-1] ={'name':response.name,'notes':response.notes}
+        self.ingredient[response.id-1][0] =response.name
+        self.ingredient[response.id-1][1] =response.expiry_date
+        self.ingredient[response.id-1][2] =[response.nutritional_info]
+        self.ingredient[response.id-1][3] =[response.notes]
+
     
     def SqlOpSend_(self, id):
         while rclpy.ok() and self.clients_sql.wait_for_service(1)==False:
@@ -59,7 +64,7 @@ class DisplayNode(Node):
 
 
 class RosThread(threading.Thread):
-    def __init__(self,node:DisplayNode):
+    def __init__(self,node:DisplayNode,sem:threading.Semaphore):
         super().__init__()
         self.node = node
         self.daemon = True
