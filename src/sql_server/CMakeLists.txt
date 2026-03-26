@@ -18,14 +18,13 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(example_interfaces REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(sql_interface REQUIRED)
 
 
-set(SOURCES 
-src/main.cpp
-src/sql_server/sql_server_node.cpp)
+set(SOURCES
+  src/main.cpp
+  src/sql_server/sql_server_node.cpp)
 
 
 add_executable(sql_server_node ${SOURCES})
@@ -38,7 +37,6 @@ target_include_directories(sql_server_node PUBLIC
 ament_target_dependencies(
   sql_server_node
   "rclcpp"
-  example_interfaces
   SQLite3
   sql_interface
 )
