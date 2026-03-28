@@ -4,6 +4,7 @@ import threading
 from sql_interface.srv import SQLOperation
 import rclpy
 import numpy as np
+
 class DisplayNode(Node):
     def __init__(self,name:str,sem:threading.Semaphore,sleep_event:threading.Event) -> None:
         super().__init__(node_name=name)
@@ -44,7 +45,6 @@ class DisplayNode(Node):
         request.operation = 4
         request.id = id 
         self.clients_sql.call_async(request).add_done_callback(self.SqlOpCallback_)
-
 
 class RosThread(threading.Thread):
     def __init__(self,node:DisplayNode):
