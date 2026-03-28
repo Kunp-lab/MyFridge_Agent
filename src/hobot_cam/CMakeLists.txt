@@ -9,7 +9,11 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 
-add_executable(camera_node src/camera_node.cpp)
+aux_source_directory(src/cam_v4l2 CAM_V4L2)
+
+add_executable(camera_node src/camera_node.cpp ${CAM_V4L2})
+
+message(${CAM_V4L2})
 target_include_directories(camera_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
