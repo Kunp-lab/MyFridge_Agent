@@ -1,59 +1,83 @@
 from rclpy.node import Node
-from .display_component import *
+import sys
 import threading
 from sql_interface.srv import SQLOperation
 import rclpy
 import numpy as np
+from PySide6.QtCore import QThread, Signal,QObject
+from sensor_msgs.msg import CompressedImage
+from cv_bridge import CvBridge
+import cv2
+from PySide6.QtGui import QImage
 
-class DisplayNode(Node):
-    def __init__(self,name:str,sem:threading.Semaphore,sleep_event:threading.Event) -> None:
-        super().__init__(node_name=name)
+class DisplayNode(Node,QObject):
+    data_updated = Signal(list)
+    image_updated = Signal(QImage)
+    def __init__(self, name: str):
+        Node.__init__(self, node_name=name)      # 先初始化 Node
+        QObject.__init__(self)
+        self.cv_bridge:CvBridge = CvBridge()
         self.get_logger().info("DisplayNode started")
-        self.init()
-        self.ingredient = [[str,int,[str],[str]] for _ in range(9)]
-        self.sem:threading.Semaphore = sem
-        self.sleep_event:threading.Event = sleep_event
-        pass
-    
-    def testSetEnv(self):
-        pass 
+        self.clients_sql = self.create_client(SQLOperation, "/sql_operation")
+        self.timer = self.create_timer(0.5, self.timer_callback)
+        self.subscriptions_image =          self.create_subscription(CompressedImage,"/image",callback=self.ImageCallback,qos_profile=10)        
+        self.ingredient = [ ["", -1, [], []] for _ in range(9) ]
 
-    def init(self):
-        self.clients_sql = self.create_client(SQLOperation,"/sql_operation")
-        self.timer = self.create_timer(0.5,self.timer_callback)
-
+    def ImageCallback(self,msg):
+        cv_image = self.cv_bridge.compressed_imgmsg_to_cv2(self.cv_bridge,msg)
+        rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+        h, w, ch = rgb_image.shape
+        qimage = QImage(rgb_image.data, w, h, ch * w, QImage.Format.Format_RGB888)
+        self.image_updated.emit(qimage.copy())
+        
     def timer_callback(self):
-        for id in range(9):  
-            self.SqlOpSend_(id)
+        for id in range(9):   # id 从 0 到 8，对应 request.id = id+1 ?
+            self.SqlOpSend_(id + 1)
+            self.data_updated.emit(self.ingredient[:])
 
-    def SqlOpCallback_(self, result_future):
-        response = SQLOperation.Response()
-        response = result_future.result()
-        with self.sem:
-            self.ingredient[response.id-1][0] =response.name
-            self.ingredient[response.id-1][1] =response.expiry_date
-            self.ingredient[response.id-1][2] =[response.nutritional_info]
-            self.ingredient[response.id-1][3] =[response.notes]
-            self.sleep_event.set()
+    def SqlOpSend_(self, id: int):
+        if not self.clients_sql.wait_for_service(1.0):
+            self.get_logger().warn(f"服务 /sql_operation 未上线，id={id}")
+            return
 
-    
-    def SqlOpSend_(self, id):
-        while rclpy.ok() and self.clients_sql.wait_for_service(1)==False:
-            self.get_logger().info(f"等待服务端上线....")
-            
         request = SQLOperation.Request()
         request.operation = 4
-        request.id = id 
-        self.clients_sql.call_async(request).add_done_callback(self.SqlOpCallback_)
+        request.id = id
+        future = self.clients_sql.call_async(request)
+        future.add_done_callback(self.SqlOpCallback_)
 
-class RosThread(threading.Thread):
+    def SqlOpCallback_(self, future):
+        try:
+            response = future.result()
+            # 更新本地数据
+            idx = response.id - 1
+            if 0 <= idx < 9:
+                self.ingredient[idx] = [
+                    response.name,
+                    response.expiry_date,
+                    [response.nutritional_info],   # 注意：你原来用了列表
+                    [response.notes]
+                ]
+        except Exception as e:
+            self.get_logger().error(f"Service call failed: {e}")
+
+class RosWorker(QThread):
+    data_updated = Signal(list)
     def __init__(self,node:DisplayNode):
         super().__init__()
         self.node = node
         self.daemon = True
 
     def run(self):
-        rclpy.spin(self.node)
+        try:            
+            rclpy.spin(self.node)
+        except:
+            rclpy.shutdown
+            sys.exit(0)
+
+    def stop(self):
+        rclpy.shutdown
+        sys.exit(0)
 
     def getIngredient(self):
         if len(self.node.ingredient) != 0:

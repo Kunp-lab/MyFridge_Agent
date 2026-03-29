@@ -4,10 +4,11 @@ import math
 from datetime import datetime
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                                QHBoxLayout, QGridLayout, QLabel, QFrame, QDialog, QPushButton, QStackedWidget)
-from PySide6.QtCore import Qt, QTimer, Signal, QTime, QPointF
-from PySide6.QtGui import QFont, QColor, QPixmap, QPainter, QPainterPath, QLinearGradient, QPen, QBrush
+from PySide6.QtCore import Qt, QTimer, Signal, QTime, QPointF,QThread
+from PySide6.QtGui import QFont, QColor, QPixmap, QPainter, QPainterPath, QLinearGradient, QPen, QBrush,QImage
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import QColor
+from .display_node import RosWorker
 
 # ==========================================
 # 辅助生成器：星露谷占位图 
@@ -577,7 +578,7 @@ class FoodCard(QFrame):
 # 主窗口 (搭载 QStackedWidget 实现页面切换)
 # ==========================================
 class SmartFridgeUI(QMainWindow):
-    def __init__(self):
+    def __init__(self,node):
         super().__init__()
         self.setWindowTitle("冰鉴 · 珍馐录")
         self.resize(720, 750) # 稍微调大一点以便容纳新按钮
@@ -596,6 +597,7 @@ class SmartFridgeUI(QMainWindow):
         
         # 默认显示待机页面 (索引 0)
         self.stacked_widget.setCurrentIndex(0)
+        self._start_ros2_thread(node=node)
 
     def _init_standby_page(self):
         """初始化待机页面"""
@@ -759,6 +761,49 @@ class SmartFridgeUI(QMainWindow):
     def set_food_item(self, row: int, col: int, name: str, days_left: int, features: list, precautions: list, image_path: str = ""):
         if 0 <= row <= 2 and 0 <= col <= 2:
             self.food_grids[row][col].update_data(name, days_left, features, precautions, image_path)
+    
+    def _start_ros2_thread(self,node):
+        """启动 ROS2 Worker 线程"""
+        self.ros_worker = RosWorker(node)
+        self.ros_worker.node.data_updated.connect(self.update_foods_from_ros)
+        self.ros_worker.node.image_updated.connect(self.update_image_from_ros)
+
+        self.ros_worker.start()
+    
+    def update_image_from_ros(self, qimage: QImage):
+        """将从 ROS 接收到的 QImage 显示到视觉页面"""
+        if qimage.isNull():
+            return
+        
+        # 1. 将 QImage 转换为 QPixmap
+        pixmap = QPixmap.fromImage(qimage)
+        
+        # 2. 更新视觉页面的显示
+        # 即使当前没在看这个页面，后台也可以持续更新
+        self.vision_page.update_viewer_image(pixmap)
+
+    def update_foods_from_ros(self, ingredients: list):
+        """从 ROS2 接收到的数据更新 GUI 卡片"""
+        for i in range(9):
+            row = i // 3
+            col = i % 3
+            item = ingredients[i]
+            
+            name = item[0]
+            expiry = item[1]          # 假设这是剩余天数或过期日期
+            features = item[2] if item[2] else []
+            precautions = item[3] if item[3] else []
+            
+            # 计算 days_left（根据你的业务逻辑调整）
+            days_left = expiry if isinstance(expiry, int) else -1
+            
+            self.set_food_item(row, col, name, days_left, features, precautions)
+
+    def closeEvent(self, event):
+        """窗口关闭时优雅停止 ROS2 线程"""
+        if self.ros_worker:
+            self.ros_worker.stop()
+        super().closeEvent(event)
 
 
 # ==========================================
