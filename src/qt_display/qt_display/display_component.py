@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QGridLayout, QLabel, QFrame, QDialog, QPushButton, QStackedWidget)
 from PySide6.QtCore import Qt, QTimer, Signal, QTime, QPointF
 from PySide6.QtGui import QFont, QColor, QPixmap, QPainter, QPainterPath, QLinearGradient, QPen, QBrush
+from PySide6.QtWidgets import QGraphicsDropShadowEffect
+from PySide6.QtGui import QColor
 
 # ==========================================
 # 辅助生成器：星露谷占位图 
@@ -578,15 +580,18 @@ class SmartFridgeUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("冰鉴 · 珍馐录")
-        self.resize(700, 700)
+        self.resize(720, 750) # 稍微调大一点以便容纳新按钮
         self.food_grids = []
         
-        # 使用 StackedWidget 来管理待机页和主页
+        # 使用 StackedWidget 来管理 3 个页面
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
         
-        self._init_standby_page()
-        self._init_main_page()
+        # 按顺序初始化并添加页面
+        self._init_standby_page()   # 索引 0
+        self._init_main_page()      # 索引 1
+        self._init_vision_page()    # 索引 2 (新增)
+        
         self._apply_global_style()
         
         # 默认显示待机页面 (索引 0)
@@ -600,43 +605,59 @@ class SmartFridgeUI(QMainWindow):
         self.stacked_widget.addWidget(self.standby_page)
 
     def _init_main_page(self):
-        """初始化主页面 (食材网格页)"""
+        """初始化主页面 (修改：标题栏增加“鉴物”按钮)"""
         self.main_page = QWidget()
         main_layout = QVBoxLayout(self.main_page)
         main_layout.setContentsMargins(30, 20, 30, 20)
         main_layout.setSpacing(15)
 
-        # 标题区域，增加“返回”按钮
+        # 标题区域，增加“返回”和“鉴物”按钮
         title_frame = QFrame()
         title_frame.setObjectName("TitleBox")
         title_layout = QHBoxLayout(title_frame)
+        title_layout.setContentsMargins(10, 5, 10, 5)
         
-        self.return_btn = QPushButton("◀ 归息 (返回待机)")
+        # --- 左侧按钮组 ---
+        nav_btn_layout = QHBoxLayout()
+        nav_btn_layout.setSpacing(10)
+
+        self.return_btn = QPushButton("◀ 待机")
         self.return_btn.setObjectName("ReturnBtn")
         self.return_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.return_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(0))
         
+        # 新增：“鉴物”按钮
+        self.vision_nav_btn = QPushButton("▶ 鉴物")
+        self.vision_nav_btn.setObjectName("VisionNavBtn") # 使用不同的标识符以便单独贴样式
+        self.vision_nav_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        # 点击切换到视觉页面 (索引 2)
+        self.vision_nav_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(2))
+
+        nav_btn_layout.addWidget(self.return_btn)
+        nav_btn_layout.addWidget(self.vision_nav_btn)
+        title_layout.addLayout(nav_btn_layout)
+
+        # --- 中间标题 ---
         title_label = QLabel("冰鉴 · 珍馐录")
         title_label.setObjectName("MainTitle")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # 占位符保持标题居中
-        dummy = QLabel()
-        dummy.setFixedWidth(120)
-        
-        title_layout.addWidget(self.return_btn)
         title_layout.addWidget(title_label, stretch=1)
+        
+        # 占位符保持标题居中 (宽度需要调整以平衡左侧两个按钮)
+        dummy = QLabel()
+        dummy.setFixedWidth(240) 
         title_layout.addWidget(dummy)
         
         main_layout.addWidget(title_frame)
 
+        # ... (状态栏和网格部分保持不变) ...
         status_frame = QFrame()
         status_frame.setObjectName("StatusBox")
         status_frame.setFixedHeight(40)
         status_layout = QHBoxLayout(status_frame)
         status_layout.setContentsMargins(20, 0, 20, 0)
         
-        self.status_label = QLabel("温度: -- °C   湿度: -- %   ❄ 鲜香守护 ❄")
+        self.status_label = QLabel("温度: -- °C   湿度: -- %   ❄ 鲜香守护 ❄")
         self.status_label.setObjectName("StatusText")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         status_layout.addWidget(self.status_label)
@@ -660,7 +681,25 @@ class SmartFridgeUI(QMainWindow):
         
         self.stacked_widget.addWidget(self.main_page)
 
+    def _init_vision_page(self):
+        """(新增) 初始化第三个页面：视觉识别页"""
+        self.vision_page = VisionRecognizePage()
+        
+        # 绑定页面内的信号
+        # 返回主界面 (索引 1)
+        self.vision_page.back_clicked.connect(lambda: self.stacked_widget.setCurrentIndex(1))
+        # 抓拍按钮事件 (暂时只打印日志，后续可以对接摄像头逻辑)
+        self.vision_page.capture_clicked.connect(self._handle_manual_capture)
+        
+        self.stacked_widget.addWidget(self.vision_page)
+
+    def _handle_manual_capture(self):
+        """(演示用) 处理手动抓拍逻辑"""
+        self.vision_page.set_result_text("正在运用‘本草识真算法’鉴别中...")
+        # 后续你可以这里调用摄像头拍照并更新 VisionPage 的图片
+
     def _apply_global_style(self):
+        # (已更新样式表：增加新导航按钮的样式)
         self.setStyleSheet("""
             QMainWindow { background-color: #EBF4F1; }
             QFrame#TitleBox {
@@ -676,7 +715,8 @@ class SmartFridgeUI(QMainWindow):
                 color: #8C471E; 
                 letter-spacing: 5px;
             }
-            QPushButton#ReturnBtn {
+            /* 公共导航按钮样式 */
+            QPushButton#ReturnBtn, QPushButton#VisionNavBtn {
                 background-color: transparent;
                 color: #5C4A3D;
                 font-family: "KaiTi";
@@ -684,10 +724,19 @@ class SmartFridgeUI(QMainWindow):
                 font-weight: bold;
                 border: 1px solid #9C8570;
                 border-radius: 5px;
-                padding: 5px 10px;
+                padding: 5px 12px;
             }
-            QPushButton#ReturnBtn:hover {
+            QPushButton#ReturnBtn:hover, QPushButton#VisionNavBtn:hover {
                 background-color: #E8ECEC;
+                border-color: #8C471E;
+            }
+            /* “鉴物”按钮特色样式 */
+            QPushButton#VisionNavBtn {
+                color: #8B2500; /* 红褐色字 */
+                border-color: #8B2500;
+            }
+            QPushButton#VisionNavBtn:hover {
+                background-color: #FDF2F0;
             }
             QFrame#StatusBox {
                 background-color: #F1F6F2;
@@ -747,3 +796,193 @@ if __name__ == "__main__":
     timer.start(3000)
 
     sys.exit(app.exec())
+
+
+
+def create_ink_camera_placeholder() -> QPixmap:
+    """用代码画一个水墨风格的摄像头占位图"""
+    pixmap = QPixmap(400, 300)
+    pixmap.fill(QColor("#F8E5BA")) # 宣纸色底
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+    # 画一个写意的毛笔圈（摄像头外框）
+    pen = QPen(QColor(60, 60, 60, 180), 8)
+    painter.setPen(pen)
+    painter.drawEllipse(150, 80, 100, 100)
+
+    # 画镜头内部（浓墨）
+    painter.setBrush(QColor(30, 30, 30, 220))
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.drawEllipse(170, 100, 60, 60)
+
+    # 画写意的支架线条
+    painter.setPen(QPen(QColor(80, 80, 80, 150), 4))
+    painter.drawLine(200, 180, 200, 240)
+    painter.drawLine(160, 240, 240, 240)
+
+    # 添加文字
+    painter.setPen(QColor("#8C471E"))
+    painter.setFont(QFont("KaiTi", 16, QFont.Weight.Bold))
+    painter.drawText(0, 260, 400, 30, Qt.AlignmentFlag.AlignCenter, "— 虚席以待 鉴诸珍馐 —")
+    
+    painter.end()
+    return pixmap
+
+
+# ==========================================
+# 视觉识别页面组件 (新中式风格)
+# ==========================================
+class VisionRecognizePage(QWidget):
+    back_clicked = Signal() # 返回信号
+    capture_clicked = Signal() # 抓拍信号
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setObjectName("VisionPage")
+        self._init_ui()
+
+    def _init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(40, 30, 40, 30)
+        layout.setSpacing(20)
+
+        # 1. 标题区域
+        title_lbl = QLabel("❖ 鉴物 · 珍馐识真 ❖")
+        title_lbl.setObjectName("VisionTitle")
+        title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title_lbl)
+
+        # 2. 图像显示区域 (核心)
+        # 这里使用一个特殊的 Frame 来模拟木质画框
+        self.image_frame = QFrame()
+        self.image_frame.setObjectName("ImageCanvasFrame")
+        self.image_frame.setFixedSize(500, 380) # 固定大小保持比例
+        
+        frame_layout = QVBoxLayout(self.image_frame)
+        frame_layout.setContentsMargins(15, 15, 15, 15) # 留出“木框”厚度
+
+        self.image_label = QLabel()
+        self.image_label.setObjectName("InkImageDisplay")
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # 初始显示占位图
+        self.image_label.setPixmap(create_ink_camera_placeholder())
+        
+        frame_layout.addWidget(self.image_label)
+        layout.addWidget(self.image_frame, 0, Qt.AlignmentFlag.AlignCenter)
+
+        # 3. 识别结果简报 (可选，增强体验)
+        self.result_label = QLabel("当前状态：静止。等待珍馐入鉴...")
+        self.result_label.setObjectName("RecognizeResultText")
+        self.result_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.result_label.setWordWrap(True)
+        layout.addWidget(self.result_label)
+
+        # 4. 底部按钮区域
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(30)
+        btn_layout.addStretch()
+
+        self.capture_btn = QPushButton("📷 手动抓拍")
+        self.capture_btn.setObjectName("InkBtn_Action")
+        self.capture_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.capture_btn.clicked.connect(self.capture_clicked.emit)
+
+        self.back_btn = QPushButton("◀ 返回主案")
+        self.back_btn.setObjectName("InkBtn_Back")
+        self.back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.back_btn.clicked.connect(self.back_clicked.emit)
+
+        btn_layout.addWidget(self.capture_btn)
+        btn_layout.addWidget(self.back_btn)
+        btn_layout.addStretch()
+        
+        layout.addLayout(btn_layout)
+        layout.addStretch()
+
+        # 样式表：保持黑胡桃木、哑金、宣纸色风格
+        self.setStyleSheet("""
+            QWidget#VisionPage {
+                background-color: #261A15; /* 深色黑胡桃木底色 */
+            }
+            QLabel#VisionTitle {
+                font-family: "KaiTi", "Microsoft YaHei";
+                font-size: 26px;
+                font-weight: bold;
+                color: #D4AF70; /* 哑金色 */
+                letter-spacing: 3px;
+                padding: 10px;
+            }
+            QFrame#ImageCanvasFrame {
+                background-color: #4A2B18; /* 稍微浅一点的木框色 */
+                border: 6px solid #1A100C; 
+                border-radius: 8px;
+                box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+            }
+            QLabel#InkImageDisplay {
+                background-color: #F8E5BA; /* 宣纸色内屏 */
+                border: 2px solid #2C1E16;
+            }
+            QLabel#RecognizeResultText {
+                font-family: "SimSun";
+                font-size: 16px;
+                font-weight: bold;
+                color: #BBBBBB;
+                background-color: rgba(0,0,0,0.3);
+                padding: 8px;
+                border-radius: 4px;
+            }
+            QPushButton {
+                font-family: "KaiTi";
+                font-size: 18px;
+                font-weight: bold;
+                padding: 10px 25px;
+                border-radius: 6px;
+            }
+            QPushButton#InkBtn_Action {
+                background-color: #8B2500; /* 红褐色 */
+                color: #FFD700;
+                border: 2px solid #D4AF70;
+            }
+            QPushButton#InkBtn_Action:hover {
+                background-color: #A03000;
+            }
+            QPushButton#InkBtn_Action:pressed {
+                background-color: #6F1D00;
+                padding-top: 11px; padding-left: 26px;
+            }
+            QPushButton#InkBtn_Back {
+                background-color: transparent;
+                color: #D4AF70;
+                border: 2px solid #D4AF70;
+            }
+            QPushButton#InkBtn_Back:hover {
+                background-color: rgba(212, 175, 112, 0.1);
+            }
+        """)
+
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(20)          # 阴影模糊半径，越大越虚
+        shadow.setXOffset(5)              # 水平偏移
+        shadow.setYOffset(5)              # 垂直偏移
+        shadow.setColor(QColor(0, 0, 0, 160)) # 阴影颜色（黑色，带透明度）
+
+        # 2. 将阴影挂载到你的木框组件上
+        self.image_frame.setGraphicsEffect(shadow)
+
+    def update_viewer_image(self, pixmap: QPixmap):
+        """外部调用：更新显示的图像（例如摄像头帧）"""
+        if pixmap.isNull():
+            return
+        
+        # 保持比例缩放以适应 Frame 内部
+        target_w = self.image_label.width() - 4
+        target_h = self.image_label.height() - 4
+        scaled_pixmap = pixmap.scaled(target_w, target_h, 
+                                    Qt.AspectRatioMode.KeepAspectRatio, 
+                                    Qt.TransformationMode.SmoothTransformation)
+        self.image_label.setPixmap(scaled_pixmap)
+
+    def set_result_text(self, text: str):
+        """外部调用：更新识别结果文字"""
+        self.result_label.setText(f"鉴别结果：{text}")
