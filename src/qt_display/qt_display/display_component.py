@@ -697,7 +697,9 @@ class SmartFridgeUI(QMainWindow):
 
     def _handle_manual_capture(self):
         """(演示用) 处理手动抓拍逻辑"""
-        self.vision_page.set_result_text("正在运用‘本草识真算法’鉴别中...")
+        self.vision_page.set_result_text("正在识别中......")
+        self.ros_worker.node.reason_flag.emit()
+
         # 后续你可以这里调用摄像头拍照并更新 VisionPage 的图片
 
     def _apply_global_style(self):
@@ -767,7 +769,7 @@ class SmartFridgeUI(QMainWindow):
         self.ros_worker = RosWorker(node)
         self.ros_worker.node.data_updated.connect(self.update_foods_from_ros)
         self.ros_worker.node.image_updated.connect(self.update_image_from_ros)
-
+        self.ros_worker.node.reason_flag.connect(self.ros_worker.node.StartReasoning)
         self.ros_worker.start()
     
     def update_image_from_ros(self, qimage: QImage):
@@ -928,7 +930,7 @@ class VisionRecognizePage(QWidget):
         btn_layout.setSpacing(30)
         btn_layout.addStretch()
 
-        self.capture_btn = QPushButton("📷 手动抓拍")
+        self.capture_btn = QPushButton("◀ 手动抓拍")
         self.capture_btn.setObjectName("InkBtn_Action")
         self.capture_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.capture_btn.clicked.connect(self.capture_clicked.emit)
