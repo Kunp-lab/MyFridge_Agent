@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QPushButton,
     QStackedWidget,
+    QTextEdit,
 )
 from PySide6.QtCore import Qt, QTimer, Signal, QTime, QPointF, QThread
 from PySide6.QtGui import (
@@ -549,6 +550,118 @@ class FoodDetailDialog(QDialog):
         )
 
 
+class RecommendDialog(QDialog):
+    def __init__(self, content: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("时令推荐")
+        self.resize(620, 520)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self._init_ui(content)
+
+    def _init_ui(self, content: str):
+        main_frame = QFrame(self)
+        main_frame.setGeometry(0, 0, 620, 520)
+        main_frame.setObjectName("RecommendDialogFrame")
+
+        layout = QVBoxLayout(main_frame)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+
+        header_layout = QHBoxLayout()
+        title_label = QLabel("❖ 时 令 推 荐 ❖")
+        title_label.setObjectName("RecommendDialogTitle")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        close_btn = QPushButton("✖")
+        close_btn.setObjectName("CloseBtn")
+        close_btn.setFixedSize(36, 36)
+        close_btn.clicked.connect(self.accept)
+
+        header_layout.addWidget(title_label, stretch=1)
+        header_layout.addWidget(close_btn)
+        layout.addLayout(header_layout)
+
+        hint_label = QLabel("已为你整理当前库存对应的营养概括与推荐食谱")
+        hint_label.setObjectName("RecommendHintLabel")
+        hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(hint_label)
+
+        self.content_edit = QTextEdit()
+        self.content_edit.setObjectName("RecommendContentEdit")
+        self.content_edit.setReadOnly(True)
+        self.content_edit.setPlainText(content)
+        layout.addWidget(self.content_edit, stretch=1)
+
+        footer_layout = QHBoxLayout()
+        footer_layout.addStretch()
+
+        confirm_btn = QPushButton("我知道了")
+        confirm_btn.setObjectName("RecommendConfirmBtn")
+        confirm_btn.setFixedSize(120, 42)
+        confirm_btn.clicked.connect(self.accept)
+        footer_layout.addWidget(confirm_btn)
+        footer_layout.addStretch()
+        layout.addLayout(footer_layout)
+
+        self.setStyleSheet(
+            """
+            QFrame#RecommendDialogFrame {
+                background-color: #E6C687;
+                border: 6px solid #4A2B18;
+                border-top-color: #6B4126;
+                border-left-color: #6B4126;
+                border-bottom-color: #2F190D;
+                border-right-color: #2F190D;
+            }
+            QLabel#RecommendDialogTitle {
+                background-color: #8B2500;
+                color: #FFD700;
+                font-family: "SimSun", "Microsoft YaHei";
+                font-size: 20px;
+                font-weight: 900;
+                border: 4px solid #4A2B18;
+                padding: 6px;
+                letter-spacing: 2px;
+            }
+            QLabel#RecommendHintLabel {
+                font-family: "KaiTi", "Microsoft YaHei";
+                font-size: 15px;
+                font-weight: bold;
+                color: #4A2B18;
+            }
+            QTextEdit#RecommendContentEdit {
+                background-color: #F8E5BA;
+                color: #2C1E16;
+                border: 4px solid #4A2B18;
+                border-top-color: #2F190D;
+                border-left-color: #2F190D;
+                border-bottom-color: #A37941;
+                border-right-color: #A37941;
+                font-family: "Microsoft YaHei", "SimSun";
+                font-size: 15px;
+                line-height: 1.5;
+                padding: 10px;
+            }
+            QPushButton#RecommendConfirmBtn {
+                background-color: #D4AF70;
+                color: #4A2B18;
+                font-family: "KaiTi", "Microsoft YaHei";
+                font-size: 16px;
+                font-weight: bold;
+                border: 4px solid #4A2B18;
+                border-top-color: #F1D18A;
+                border-left-color: #F1D18A;
+            }
+            QPushButton#RecommendConfirmBtn:pressed {
+                border-top-color: #2F190D;
+                border-left-color: #2F190D;
+                background-color: #B9914F;
+            }
+        """
+        )
+
+
 # ==========================================
 # 食物卡片组件 (包含【毛笔一笔画圈】的核心算法)
 # ==========================================
@@ -896,8 +1009,13 @@ class SmartFridgeUI(QMainWindow):
         pass
 
     def _handle_season(self):
+        self.vision_page.set_result_text("正在生成推荐食谱......")
+        self.ros_worker.node.StartRecommend()
 
-        pass
+    def _show_recommend_dialog(self, text: str):
+        self.vision_page.set_result_text("推荐结果已生成，请查看弹窗。")
+        dialog = RecommendDialog(text, self)
+        dialog.exec()
 
     def _apply_global_style(self):
         # (已更新样式表：增加新导航按钮的样式)
@@ -1008,6 +1126,7 @@ class SmartFridgeUI(QMainWindow):
         self.ros_worker = RosWorker(node)
         self.ros_worker.node.data_updated.connect(self.update_foods_from_ros)
         self.ros_worker.node.image_updated.connect(self.update_image_from_ros)
+        self.ros_worker.node.recommend_updated.connect(self._show_recommend_dialog)
         self.ros_worker.node.reason_flag.connect(
             self.ros_worker.node.StartReasoning, Qt.ConnectionType.QueuedConnection
         )

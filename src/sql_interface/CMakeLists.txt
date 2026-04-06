@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 project(sql_interface)
 
+if(DEFINED ENV{CONDA_PREFIX})
+  set(PYTHON_EXECUTABLE "/usr/bin/python3" CACHE FILEPATH "System Python for ROS" FORCE)
+  set(Python3_EXECUTABLE "/usr/bin/python3" CACHE FILEPATH "System Python for ROS" FORCE)
+endif()
+
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
   set(CMAKE_C_STANDARD 99)

@@ -14,21 +14,25 @@ import os
 from openai import OpenAI
 from PySide6.QtGui import QImage
 import json
+from typing import Optional
 from .config import Setting
 import paho.mqtt.client as mqtt
 import time
+from datetime import datetime
+import re
 
 
 class DisplayNode(Node, QObject):
     data_updated = Signal(list)
     image_updated = Signal(QImage)
     reason_flag = Signal()
+    recommend_updated = Signal(str)
 
     def __init__(self, name: str):
         Node.__init__(self, node_name=name)  # 先初始化 Node
         QObject.__init__(self)
         self.cv_bridge: CvBridge = CvBridge()
-        self.image_temp: np.ndarray
+        self.image_temp: Optional[np.ndarray] = None
         self.get_logger().info("DisplayNode started")
         self.clients_sql = self.create_client(SQLOperation, "/sql_operation")
         self.timer = self.create_timer(3, self.timer_callback)
@@ -48,7 +52,18 @@ class DisplayNode(Node, QObject):
         )
         self.Ton_server = mqtt.Client()
         self.init_mqtt_connect()
+        self.init_threads()
 
+    def init_threads(self):
+        self._image_lock = threading.Lock()
+        self._reasoning_lock = threading.Lock()
+        self._reasoning_in_progress = False
+        self._reasoning_thread = None
+
+        self._recommend_lock =threading.Lock()
+        self._recommend_thread = None 
+        self._recommend_in_progress = False
+        
     def init_mqtt_connect(self):
         def on_connect(client, userdata, flags, reason_code, properties=None):
             self.get_logger().info(f"[*] 已连接到 Broker")
@@ -89,17 +104,18 @@ class DisplayNode(Node, QObject):
     def ImageCallback(self, msg):
         cv_image = self.cv_bridge.compressed_imgmsg_to_cv2(msg)
         rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-        self.image_temp = rgb_image
+        with self._image_lock:
+            self.image_temp = rgb_image.copy()
         h, w, ch = rgb_image.shape
         qimage = QImage(rgb_image.data, w, h, ch * w, QImage.Format.Format_RGB888)
         self.image_updated.emit(qimage.copy())
 
     def timer_callback(self):
         for id in range(9):  # id 从 0 到 8，对应 request.id = id+1 ?
-            self.SqlOpSend_(id + 1)
+            self.SqlOpSend_(id + 1,self.SymCallback_)
             self.data_updated.emit(self.ingredient[:])
 
-    def SqlOpSend_(self, id: int):
+    def SqlOpSend_(self, id: int,callback):
         try:
             if not self.clients_sql.wait_for_service(0.5):
                 self.get_logger().warn(f"服务 /sql_operation 未上线,id={id}")
@@ -108,12 +124,12 @@ class DisplayNode(Node, QObject):
             request.operation = 4
             request.id = id
             future = self.clients_sql.call_async(request)
-            future.add_done_callback(self.SqlOpCallback_)
+            future.add_done_callback(callback=callback)
         except:
             self.get_logger().warn("error")
         pass
 
-    def SqlOpCallback_(self, future):
+    def SymCallback_(self, future):
         try:
             response = future.result()
             # 更新本地数据
@@ -133,9 +149,82 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def StartReasoning(self):
-        if self.image_temp is None:
-            return
+        with self._image_lock:
+            if self.image_temp is None:
+                self.get_logger().warn("暂无可识别图像，已跳过本次识别")
+                return
+            image_snapshot = self.image_temp.copy()
 
+        with self._reasoning_lock:
+            if self._reasoning_in_progress:
+                self.get_logger().info("识别任务仍在进行中，忽略重复触发")
+                return
+            self._reasoning_in_progress = True
+
+        self._reasoning_thread = threading.Thread(
+            target=self._run_reasoning_task,
+            args=(image_snapshot,),
+            daemon=True,
+            name="food-reasoning",
+        )
+        self._reasoning_thread.start()
+
+    @Slot()
+    def StartRecommend(self):
+        with self._recommend_lock:
+            if self._recommend_in_progress:
+                self.get_logger().info("推荐任务仍在进行中，忽略重复触发")
+                return
+            self._recommend_in_progress = True
+        
+        self._recommend_thread = threading.Thread(
+            target=self._run_recommend_task,
+            daemon=True,
+            name= "food-recommend"
+        )
+        self._recommend_thread.start()
+
+    def _run_recommend_task(self):
+        try:
+            result = self._request_recommend_result()
+            if result is None:
+                self.recommend_updated.emit("暂未生成推荐，请稍后再试。")
+                return
+
+            self.recommend_updated.emit(self._format_recommend_result_text(result))
+        except Exception as e:
+            self.get_logger().error(f"推荐任务执行失败:{e}")
+            self.recommend_updated.emit("推荐任务执行失败，请稍后再试。")
+        finally:
+            with self._recommend_lock:
+                self._recommend_in_progress = False
+    
+    def _run_reasoning_task(self, image: np.ndarray):
+        try:
+            result = self._request_reasoning_result(image)
+            if result is None:
+                return
+
+            self._submit_reasoning_result(result)
+        except Exception as e:
+            self.get_logger().error(f"识别任务执行失败:{e}")
+        finally:
+            with self._reasoning_lock:
+                self._reasoning_in_progress = False
+
+    def _submit_reasoning_result(self, result: dict):
+        request = SQLOperation.Request()
+        request.operation = 1
+        request.name = result["名字"]
+        request.expiry_date = int(result["保质期"])
+        request.nutritional_info = result["营养价值"]
+        request.notes = result["食用建议"]
+
+        future = self.clients_sql.call_async(request)
+        future.add_done_callback(self.SymCallback_)
+        self.get_logger().info(f"识别完成，已提交食材信息: {request.name}")
+
+    def _request_reasoning_result(self, image: np.ndarray):
         system_prompt = """你是一个严格的食物分析助手。
         请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
         {
@@ -145,9 +234,7 @@ class DisplayNode(Node, QObject):
         "保质期": "假设今天放入这种食物，保质期大概为几天，单位为天,数据类型为int"
         }"""
 
-        image_base64 = self.encode_opencv_image(
-            self.image_temp, format=".jpg", quality=85
-        )
+        image_base64 = self.encode_opencv_image(image, format=".jpg", quality=85)
 
         response = self.LLM_server.chat.completions.create(
             model="glm-4.6v-flash",  # 推荐快速模型
@@ -175,21 +262,189 @@ class DisplayNode(Node, QObject):
         )
 
         try:
-            if response.choices[0].message.content is None:
-                return
-            result = json.loads(response.choices[0].message.content.strip())
-            request = SQLOperation.Request()
-            request.operation = 1
-            request.name = result["名字"]
-            request.expiry_date = result["保质期"]
-            request.nutritional_info = result["营养价值"]
-            request.notes = result["食用建议"]
-            future = self.clients_sql.call_async(request)
-            future.add_done_callback(self.SqlOpCallback_)
+            raw_content = self._extract_message_content(response)
+            if raw_content is None:
+                self.get_logger().warn("模型未返回有效内容")
+                return None
+
+            result = self._parse_json_response(raw_content)
+            result["保质期"] = int(result["保质期"])
             return result
         except Exception as e:
             self.get_logger().error(f"JSON 解析失败:{e}")
+            return
+        return None
+
+    def _request_recommend_result(self):
+        inventory_summary = self._build_inventory_summary()
+        if inventory_summary == "当前冰箱中暂无可用食材数据。":
+            self.get_logger().warn("暂无库存数据，无法生成推荐")
             return None
+
+        current_context = self._build_hangzhou_context()
+
+        system_prompt = """你是一个严格的厨房营养与食谱推荐助手。
+        请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
+        {
+        "近几天的营养状况概括": "如果没在传给你的数据里看到就说“未查询到”",
+        "推荐食谱1": "根据冰箱里有的食材的基础，和当前的浙江杭州的节气环境温湿度，给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买",
+        "推荐食谱2": "根据冰箱里有的食材的基础，和当前的浙江杭州的节气环境温湿度，给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买"
+        }"""
+        self.get_logger().info(f"{inventory_summary}\n\n\n{current_context}")
+        response = self.LLM_server.chat.completions.create(
+            model="glm-4.6v",  # 推荐快速模型
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                f"{current_context}\n"
+                                "以下是冰箱中的现有食材信息，请结合这些内容给出推荐。\n"
+                                f"{inventory_summary}\n"
+                                "要求：\n"
+                                "1. 优先使用已有且临近保质期的食材。\n"
+                                "2. 推荐内容要明确哪些食材需要额外购买。\n"
+                                "3. 近几天营养概括只能基于提供的数据，不要虚构体检或摄入记录。"
+                            ),
+                        },
+                    ],
+                },
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=4000,
+        )
+
+        try:
+            raw_content = self._extract_message_content(response)
+            if raw_content is None:
+                self.get_logger().warn("模型未返回有效内容")
+                return None
+
+            result = self._parse_json_response(raw_content)
+            return result
+        except Exception as e:
+            fallback_text = self._extract_message_content(response)
+            self.get_logger().error(f"JSON 解析失败:{e}")
+            if fallback_text:
+                return {
+                    "近几天的营养状况概括": "模型未按 JSON 返回，以下为原始内容",
+                    "推荐食谱1": fallback_text.strip(),
+                    "推荐食谱2": "请检查 prompt、模型能力或 base_url 接口格式。",
+                }
+            return None
+        return None
+
+    def _extract_message_content(self, response) -> Optional[str]:
+        try:
+            message = response.choices[0].message
+        except Exception:
+            return None
+
+        content = getattr(message, "content", None)
+        if isinstance(content, str):
+            text = content.strip()
+            return text if text else None
+
+        if isinstance(content, list):
+            text_parts = []
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    text_value = str(item.get("text", "")).strip()
+                    if text_value:
+                        text_parts.append(text_value)
+            if text_parts:
+                return "\n".join(text_parts)
+
+        return None
+
+    def _parse_json_response(self, raw_content: str) -> dict:
+        text = raw_content.strip()
+        if not text:
+            raise ValueError("模型返回内容为空")
+
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass
+
+        fenced_match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", text, re.DOTALL)
+        if fenced_match:
+            return json.loads(fenced_match.group(1).strip())
+
+        json_match = re.search(r"(\{.*\})", text, re.DOTALL)
+        if json_match:
+            return json.loads(json_match.group(1).strip())
+
+        raise ValueError(f"未找到合法 JSON，原始返回: {text[:200]}")
+
+    def _build_inventory_summary(self) -> str:
+        summary_lines = []
+        for idx, item in enumerate(self.ingredient, start=1):
+            name = item[0].strip() if isinstance(item[0], str) else ""
+            if not name:
+                continue
+
+            expiry = item[1] if isinstance(item[1], int) else -1
+            nutrition = self._normalize_text_field(item[2])
+            notes = self._normalize_text_field(item[3])
+
+            summary_lines.append(
+                f"{idx}. 食材: {name}; 保质期: {expiry}天; 营养信息: {nutrition}; 备注: {notes}"
+            )
+
+        if not summary_lines:
+            return "当前冰箱中暂无可用食材数据。"
+
+        return "\n".join(summary_lines)
+
+    def _normalize_text_field(self, value) -> str:
+        if isinstance(value, list):
+            text_parts = [str(item).strip() for item in value if str(item).strip()]
+            return "；".join(text_parts) if text_parts else "未查询到"
+
+        if value is None:
+            return "未查询到"
+
+        text = str(value).strip()
+        return text if text else "未查询到"
+
+    def _build_hangzhou_context(self) -> str:
+        now = datetime.now()
+        month = now.month
+        day = now.day
+
+        if month in (3, 4):
+            season = "春季"
+            climate = "体感偏湿润，适合清淡、温和、少油的搭配"
+        elif month in (5, 6):
+            season = "初夏"
+            climate = "气温逐渐升高，适合清爽、补水、易消化的搭配"
+        elif month in (7, 8, 9):
+            season = "夏秋之交"
+            climate = "偏闷热潮湿，适合少油腻、兼顾补水与开胃"
+        else:
+            season = "秋冬季"
+            climate = "气温偏低，可适当选择温补、带热量的搭配"
+
+        return (
+            f"当前日期: {now.strftime('%Y-%m-%d')}。"
+            f"用户所在场景按浙江杭州考虑，当前按{season}的一般节气与气候特征处理，"
+            f"{climate}。如未提供实时温湿度，请明确按季节经验给出建议。"
+        )
+
+    def _format_recommend_result_text(self, result: dict) -> str:
+        nutrition = str(result.get("近几天的营养状况概括", "未查询到")).strip()
+        recipe1 = str(result.get("推荐食谱1", "未查询到")).strip()
+        recipe2 = str(result.get("推荐食谱2", "未查询到")).strip()
+
+        return (
+            f"近几天的营养状况概括：{nutrition}\n\n"
+            f"推荐食谱1：{recipe1}\n\n"
+            f"推荐食谱2：{recipe2}"
+        )
 
     def encode_opencv_image(
         self, image: np.ndarray, format: str = ".jpg", quality: int = 85

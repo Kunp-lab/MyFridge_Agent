@@ -7,7 +7,7 @@
 #include <sqlite3.h>
 #include <string>
 
-#define DB_ADRESS "/userdata/ros2_ws/CreativeRobot/database/my_fridge"
+#define DB_ADRESS "/home/kunp/TrosWork/CreativeRobot/database/my_fridge"
 namespace CreativeRobot
 {
 class SqlServerNode : public rclcpp::Node
