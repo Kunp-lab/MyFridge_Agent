@@ -89,7 +89,7 @@ class StandbyScreen(QWidget):
         self.setStyleSheet(
             """
             QWidget#StandbyScreen {
-                background-color: #261A15; /* 深色黑胡桃木底色 */
+                background-color: #171919;
             }
         """
         )
@@ -494,12 +494,12 @@ class FoodDetailDialog(QDialog):
                 border-right-color: #2F190D;
             }
             QLabel#DialogTitle {
-                background-color: #8B2500; 
-                color: #FFD700; 
-                font-family: "SimSun", "Microsoft YaHei";
-                font-size: 20px;
+                background-color: #7C6244;
+                color: #F3E2C1;
+                font-family: "Microsoft YaHei", "SimSun";
+                font-size: 19px;
                 font-weight: 900;
-                border: 4px solid #4A2B18;
+                border: 4px solid #221D18;
                 padding: 6px;
                 letter-spacing: 2px;
             }
@@ -526,16 +526,16 @@ class FoodDetailDialog(QDialog):
                 border-right-color: #A37941;
             }
             QLabel#SectionTitle {
-                font-family: "KaiTi", "Microsoft YaHei";
+                font-family: "Microsoft YaHei", "KaiTi";
                 font-size: 16px;
                 font-weight: bold;
-                color: #4A2B18;
-                background-color: #D4AF70;
-                padding: 2px 5px;
+                color: #241D17;
+                background-color: #C9A06D;
+                padding: 4px 8px;
                 border: 2px solid #4A2B18;
             }
             QLabel#DetailText {
-                font-family: "SimSun", "Microsoft YaHei";
+                font-family: "Microsoft YaHei", "SimSun";
                 font-size: 14px;
                 font-weight: bold;
                 color: #2C1E16;
@@ -615,48 +615,48 @@ class RecommendDialog(QDialog):
                 border-right-color: #2F190D;
             }
             QLabel#RecommendDialogTitle {
-                background-color: #8B2500;
-                color: #FFD700;
-                font-family: "SimSun", "Microsoft YaHei";
-                font-size: 20px;
+                background-color: #7C6244;
+                color: #F3E2C1;
+                font-family: "Microsoft YaHei", "SimSun";
+                font-size: 19px;
                 font-weight: 900;
-                border: 4px solid #4A2B18;
+                border: 4px solid #221D18;
                 padding: 6px;
                 letter-spacing: 2px;
             }
             QLabel#RecommendHintLabel {
-                font-family: "KaiTi", "Microsoft YaHei";
+                font-family: "Microsoft YaHei", "KaiTi";
                 font-size: 15px;
                 font-weight: bold;
                 color: #4A2B18;
             }
             QTextEdit#RecommendContentEdit {
-                background-color: #F8E5BA;
-                color: #2C1E16;
+                background-color: #1D1F1F;
+                color: #E7D6B7;
                 border: 4px solid #4A2B18;
-                border-top-color: #2F190D;
-                border-left-color: #2F190D;
-                border-bottom-color: #A37941;
-                border-right-color: #A37941;
+                border-top-color: #151211;
+                border-left-color: #151211;
+                border-bottom-color: #C29A6A;
+                border-right-color: #C29A6A;
                 font-family: "Microsoft YaHei", "SimSun";
                 font-size: 15px;
                 line-height: 1.5;
                 padding: 10px;
             }
             QPushButton#RecommendConfirmBtn {
-                background-color: #D4AF70;
-                color: #4A2B18;
-                font-family: "KaiTi", "Microsoft YaHei";
+                background-color: #B68A58;
+                color: #211913;
+                font-family: "Microsoft YaHei", "KaiTi";
                 font-size: 16px;
                 font-weight: bold;
                 border: 4px solid #4A2B18;
-                border-top-color: #F1D18A;
-                border-left-color: #F1D18A;
+                border-top-color: #D9B07C;
+                border-left-color: #D9B07C;
             }
             QPushButton#RecommendConfirmBtn:pressed {
                 border-top-color: #2F190D;
                 border-left-color: #2F190D;
-                background-color: #B9914F;
+                background-color: #8F6A42;
             }
         """
         )
@@ -704,23 +704,24 @@ class FoodCard(QFrame):
         self.setStyleSheet(
             """
             QFrame#CardFrame {
-                background-color: #F4F6F6; 
-                border: 2px solid #9C8570;
-                border-radius: 12px;
+                background-color: #1B1E1E;
+                border: 2px solid #B79261;
+                border-radius: 14px;
             }
             QFrame#CardFrame:hover {
-                background-color: #E8ECEC;
-                border: 2px solid #D98842;
+                background-color: #232727;
+                border: 2px solid #D1A26A;
             }
             QLabel {
-                border: 2px solid #9C8570;
-                border-radius: 15px; 
-                background-color: rgba(255, 255, 255, 0.85); 
+                border: 2px solid #6F5C46;
+                border-radius: 14px;
+                background-color: rgba(31, 34, 34, 0.92);
                 font-family: "Microsoft YaHei";
                 font-weight: bold;
                 font-size: 15px;
+                color: #E6D3B2;
             }
-            QLabel#PillLabel_Name { color: #2F5960; }
+            QLabel#PillLabel_Name { color: #E8D8BB; }
         """
         )
 
@@ -821,13 +822,13 @@ class FoodCard(QFrame):
 
         if days_left < 0:
             self.expire_label.setText("—")
-            self.expire_label.setStyleSheet("color: #777777;")
+            self.expire_label.setStyleSheet("color: #90857A; border-color: #5D5246;")
         elif days_left <= 3:
             self.expire_label.setText(f"仅剩 {days_left} 日")
-            self.expire_label.setStyleSheet("color: #D6862A; border-color: #D6862A;")
+            self.expire_label.setStyleSheet("color: #F0B766; border-color: #C88A3C;")
         else:
             self.expire_label.setText(f"尚余 {days_left} 日")
-            self.expire_label.setStyleSheet("color: #387A65;")
+            self.expire_label.setStyleSheet("color: #B7C8B3; border-color: #6E7A68;")
 
         self._generate_brush_circle(name, days_left)
         self.update()
@@ -886,6 +887,7 @@ class SmartFridgeUI(QMainWindow):
     def _init_main_page(self):
         """初始化主页面 (修改：标题栏增加“鉴物”按钮)"""
         self.main_page = QWidget()
+        self.main_page.setObjectName("MainPage")
         main_layout = QVBoxLayout(self.main_page)
         main_layout.setContentsMargins(30, 20, 30, 20)
         main_layout.setSpacing(15)
@@ -1021,72 +1023,54 @@ class SmartFridgeUI(QMainWindow):
         # (已更新样式表：增加新导航按钮的样式)
         self.setStyleSheet(
             """
-            QMainWindow { background-color: #EBF4F1; }
+            QMainWindow {
+                background-color: #121415;
+            }
+            QWidget#MainPage {
+                background-color: #121415;
+            }
             QFrame#TitleBox {
-                border: 2px dashed #9C8570; 
-                border-radius: 10px;
-                background-color: #FDFDFD;
-                padding: 5px;
+                border: 2px solid #B68A58;
+                border-radius: 12px;
+                background-color: #202323;
+                padding: 6px;
             }
             QLabel#MainTitle {
                 font-family: "Microsoft YaHei", "SimHei";
-                font-size: 28px;
+                font-size: 26px;
                 font-weight: 900;
-                color: #8C471E; 
-                letter-spacing: 5px;
+                color: #E7D6B7;
+                letter-spacing: 4px;
             }
-            /* 公共导航按钮样式 */
-            QPushButton#ReturnBtn, QPushButton#VisionNavBtn {
-                background-color: transparent;
-                color: #5C4A3D;
-                font-family: "KaiTi";
-                font-size: 16px;
+            QPushButton#ReturnBtn, QPushButton#VisionNavBtn, QPushButton#ExitBtn {
+                background-color: #A67C52;
+                color: #181411;
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 15px;
                 font-weight: bold;
-                border: 1px solid #9C8570;
-                border-radius: 5px;
+                border: 2px solid #4C3B2A;
+                border-top-color: #D9B07C;
+                border-left-color: #D9B07C;
+                border-radius: 8px;
                 padding: 5px 12px;
             }
-            QPushButton#ReturnBtn:hover, QPushButton#VisionNavBtn:hover {
-                background-color: #E8ECEC;
-                border-color: #8C471E;
+            QPushButton#ReturnBtn:hover, QPushButton#VisionNavBtn:hover, QPushButton#ExitBtn:hover {
+                background-color: #BD9161;
             }
-
-            QPushButton#ExitBtn, QPushButton#VisionNavBtn {
-                background-color: transparent;
-                color: #5C4A3D;
-                font-family: "KaiTi";
-                font-size: 16px;
-                font-weight: bold;
-                border: 1px solid #9C8570;
-                border-radius: 5px;
-                padding: 5px 12px;
-            }
-            QPushButton#ExitBtn:hover, QPushButton#VisionNavBtn:hover {
-                background-color: #E8ECEC;
-                border-color: #8C471E;
-            }
-            QPushButton#VisionNavBtn, QPushButton#VisionNavBtn {
-                background-color: transparent;
-                color: #5C4A3D;
-                font-family: "KaiTi";
-                font-size: 16px;
-                font-weight: bold;
-                border: 1px solid #9C8570;
-                border-radius: 5px;
-                padding: 5px 12px;
-            }
-            QPushButton#VisionNavBtn:hover, QPushButton#VisionNavBtn:hover {
-                background-color: #E8ECEC;
-                border-color: #8C471E;
+            QPushButton#ReturnBtn:pressed, QPushButton#VisionNavBtn:pressed, QPushButton#ExitBtn:pressed {
+                background-color: #8D6843;
+                border-top-color: #3A2C20;
+                border-left-color: #3A2C20;
             }
             QFrame#StatusBox {
-                background-color: #F1F6F2;
-                border-radius: 8px;
+                background-color: #1D1F1F;
+                border: 2px solid #6B5A47;
+                border-radius: 10px;
             }
             QLabel#StatusText {
                 font-family: "Microsoft YaHei";
                 font-size: 13px;
-                color: #4A5B5A;
+                color: #C8BCAB;
             }
         """
         )
@@ -1169,30 +1153,26 @@ class SmartFridgeUI(QMainWindow):
 
 
 def create_ink_camera_placeholder() -> QPixmap:
-    """用代码画一个水墨风格的摄像头占位图"""
+    """用代码画一个适配深色机壳的摄像头占位图"""
     pixmap = QPixmap(400, 300)
-    pixmap.fill(QColor("#F8E5BA"))  # 宣纸色底
+    pixmap.fill(QColor("#171919"))
     painter = QPainter(pixmap)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-    # 画一个写意的毛笔圈（摄像头外框）
-    pen = QPen(QColor(60, 60, 60, 180), 8)
+    pen = QPen(QColor("#B79261"), 6)
     painter.setPen(pen)
-    painter.drawEllipse(150, 80, 100, 100)
+    painter.drawRoundedRect(78, 46, 244, 180, 18, 18)
 
-    # 画镜头内部（浓墨）
-    painter.setBrush(QColor(30, 30, 30, 220))
+    painter.setBrush(QColor(24, 27, 27, 220))
+    painter.drawRoundedRect(92, 60, 216, 152, 12, 12)
+
     painter.setPen(Qt.PenStyle.NoPen)
-    painter.drawEllipse(170, 100, 60, 60)
+    painter.setBrush(QColor("#D3B07B"))
+    for x, y in [(88, 56), (300, 56), (88, 200), (300, 200)]:
+        painter.drawEllipse(x, y, 10, 10)
 
-    # 画写意的支架线条
-    painter.setPen(QPen(QColor(80, 80, 80, 150), 4))
-    painter.drawLine(200, 180, 200, 240)
-    painter.drawLine(160, 240, 240, 240)
-
-    # 添加文字
-    painter.setPen(QColor("#8C471E"))
-    painter.setFont(QFont("KaiTi", 16, QFont.Weight.Bold))
+    painter.setPen(QColor("#DCC8A6"))
+    painter.setFont(QFont("Microsoft YaHei", 16, QFont.Weight.Bold))
     painter.drawText(
         0, 260, 400, 30, Qt.AlignmentFlag.AlignCenter, "— 虚席以待 鉴诸珍馐 —"
     )
@@ -1292,61 +1272,66 @@ class VisionRecognizePage(QWidget):
         self.setStyleSheet(
             """
             QWidget#VisionPage {
-                background-color: #261A15; /* 深色黑胡桃木底色 */
+                background-color: #121415;
             }
             QLabel#VisionTitle {
-                font-family: "KaiTi", "Microsoft YaHei";
-                font-size: 26px;
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 24px;
                 font-weight: bold;
-                color: #D4AF70; /* 哑金色 */
-                letter-spacing: 3px;
-                padding: 10px;
+                color: #E7D6B7;
+                letter-spacing: 2px;
+                padding: 10px 14px;
             }
             QFrame#ImageCanvasFrame {
-                background-color: #4A2B18; /* 稍微浅一点的木框色 */
-                border: 6px solid #1A100C; 
-                border-radius: 8px;
-                box-shadow: 5px 5px 15px rgba(0,0,0,0.5);
+                background-color: #262626;
+                border: 6px solid #B68A58;
+                border-radius: 14px;
             }
             QLabel#InkImageDisplay {
-                background-color: #F8E5BA; /* 宣纸色内屏 */
-                border: 2px solid #2C1E16;
+                background-color: #0E1112;
+                border: 3px solid #231D18;
+                border-radius: 8px;
             }
             QLabel#RecognizeResultText {
-                font-family: "SimSun";
-                font-size: 16px;
+                font-family: "Microsoft YaHei", "SimSun";
+                font-size: 15px;
                 font-weight: bold;
-                color: #BBBBBB;
-                background-color: rgba(0,0,0,0.3);
-                padding: 8px;
-                border-radius: 4px;
+                color: #D8C7A9;
+                background-color: #1B1E1E;
+                border: 2px solid #6C5945;
+                padding: 10px 14px;
+                border-radius: 8px;
             }
             QPushButton {
-                font-family: "KaiTi";
-                font-size: 18px;
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 17px;
                 font-weight: bold;
                 padding: 10px 25px;
-                border-radius: 6px;
+                border-radius: 8px;
             }
             QPushButton#InkBtn_Action {
-                background-color: #8B2500; /* 红褐色 */
-                color: #FFD700;
-                border: 2px solid #D4AF70;
+                background-color: #A67C52;
+                color: #181411;
+                border: 2px solid #4C3B2A;
+                border-top-color: #D9B07C;
+                border-left-color: #D9B07C;
             }
             QPushButton#InkBtn_Action:hover {
-                background-color: #A03000;
+                background-color: #BD9161;
             }
             QPushButton#InkBtn_Action:pressed {
-                background-color: #6F1D00;
+                background-color: #8D6843;
+                border-top-color: #3A2C20;
+                border-left-color: #3A2C20;
                 padding-top: 11px; padding-left: 26px;
             }
             QPushButton#InkBtn_Back {
-                background-color: transparent;
-                color: #D4AF70;
-                border: 2px solid #D4AF70;
+                background-color: #1B1E1E;
+                color: #D8C7A9;
+                border: 2px solid #7A644B;
             }
             QPushButton#InkBtn_Back:hover {
-                background-color: rgba(212, 175, 112, 0.1);
+                background-color: #242828;
             }
         """
         )
