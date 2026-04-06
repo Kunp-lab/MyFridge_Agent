@@ -3,6 +3,9 @@ build/
 install/
 log/
 
+#模型
+model/
+
 # Python 缓存等常见忽略
 __pycache__/
 *.pyc
