@@ -662,6 +662,118 @@ class RecommendDialog(QDialog):
         )
 
 
+class FoodRecognizeDialog(QDialog):
+    def __init__(self, content: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("食材识别结果")
+        self.resize(560, 420)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self._init_ui(content)
+
+    def _init_ui(self, content: str):
+        main_frame = QFrame(self)
+        main_frame.setGeometry(0, 0, 560, 420)
+        main_frame.setObjectName("FoodRecognizeDialogFrame")
+
+        layout = QVBoxLayout(main_frame)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+
+        header_layout = QHBoxLayout()
+        title_label = QLabel("❖ 食 材 识 别 完 成 ❖")
+        title_label.setObjectName("FoodRecognizeDialogTitle")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        close_btn = QPushButton("✖")
+        close_btn.setObjectName("CloseBtn")
+        close_btn.setFixedSize(36, 36)
+        close_btn.clicked.connect(self.accept)
+
+        header_layout.addWidget(title_label, stretch=1)
+        header_layout.addWidget(close_btn)
+        layout.addLayout(header_layout)
+
+        hint_label = QLabel("以下为本次识别到的食材信息与推荐放置位置")
+        hint_label.setObjectName("FoodRecognizeHintLabel")
+        hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(hint_label)
+
+        self.content_edit = QTextEdit()
+        self.content_edit.setObjectName("FoodRecognizeContentEdit")
+        self.content_edit.setReadOnly(True)
+        self.content_edit.setPlainText(content)
+        layout.addWidget(self.content_edit, stretch=1)
+
+        footer_layout = QHBoxLayout()
+        footer_layout.addStretch()
+
+        confirm_btn = QPushButton("知道了")
+        confirm_btn.setObjectName("FoodRecognizeConfirmBtn")
+        confirm_btn.setFixedSize(120, 42)
+        confirm_btn.clicked.connect(self.accept)
+        footer_layout.addWidget(confirm_btn)
+        footer_layout.addStretch()
+        layout.addLayout(footer_layout)
+
+        self.setStyleSheet(
+            """
+            QFrame#FoodRecognizeDialogFrame {
+                background-color: #E6C687;
+                border: 6px solid #4A2B18;
+                border-top-color: #6B4126;
+                border-left-color: #6B4126;
+                border-bottom-color: #2F190D;
+                border-right-color: #2F190D;
+            }
+            QLabel#FoodRecognizeDialogTitle {
+                background-color: #7C6244;
+                color: #F3E2C1;
+                font-family: "Microsoft YaHei", "SimSun";
+                font-size: 19px;
+                font-weight: 900;
+                border: 4px solid #221D18;
+                padding: 6px;
+                letter-spacing: 2px;
+            }
+            QLabel#FoodRecognizeHintLabel {
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 15px;
+                font-weight: bold;
+                color: #4A2B18;
+            }
+            QTextEdit#FoodRecognizeContentEdit {
+                background-color: #1D1F1F;
+                color: #E7D6B7;
+                border: 4px solid #4A2B18;
+                border-top-color: #151211;
+                border-left-color: #151211;
+                border-bottom-color: #C29A6A;
+                border-right-color: #C29A6A;
+                font-family: "Microsoft YaHei", "SimSun";
+                font-size: 15px;
+                line-height: 1.5;
+                padding: 10px;
+            }
+            QPushButton#FoodRecognizeConfirmBtn {
+                background-color: #B68A58;
+                color: #211913;
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 16px;
+                font-weight: bold;
+                border: 4px solid #4A2B18;
+                border-top-color: #D9B07C;
+                border-left-color: #D9B07C;
+            }
+            QPushButton#FoodRecognizeConfirmBtn:pressed {
+                border-top-color: #2F190D;
+                border-left-color: #2F190D;
+                background-color: #8F6A42;
+            }
+        """
+        )
+
+
 # ==========================================
 # 食物卡片组件 (包含【毛笔一笔画圈】的核心算法)
 # ==========================================
@@ -1007,8 +1119,8 @@ class SmartFridgeUI(QMainWindow):
         # 后续你可以这里调用摄像头拍照并更新 VisionPage 的图片
 
     def _handle_tongueai(self):
-
-        pass
+        self.vision_page.set_result_text("正在发送舌诊图片，等待健康检测结果......")
+        self.ros_worker.node.StartTongueDiagnosis()
 
     def _handle_season(self):
         self.vision_page.set_result_text("正在生成推荐食谱......")
@@ -1017,6 +1129,11 @@ class SmartFridgeUI(QMainWindow):
     def _show_recommend_dialog(self, text: str):
         self.vision_page.set_result_text("推荐结果已生成，请查看弹窗。")
         dialog = RecommendDialog(text, self)
+        dialog.exec()
+
+    def _show_food_recognition_dialog(self, text: str):
+        self.vision_page.set_result_text("识别完成，请查看提示框。")
+        dialog = FoodRecognizeDialog(text, self)
         dialog.exec()
 
     def _apply_global_style(self):
@@ -1111,6 +1228,12 @@ class SmartFridgeUI(QMainWindow):
         self.ros_worker.node.data_updated.connect(self.update_foods_from_ros)
         self.ros_worker.node.image_updated.connect(self.update_image_from_ros)
         self.ros_worker.node.recommend_updated.connect(self._show_recommend_dialog)
+        self.ros_worker.node.food_recognition_updated.connect(
+            self._show_food_recognition_dialog
+        )
+        self.ros_worker.node.tongue_health_updated.connect(
+            self.vision_page.set_result_text
+        )
         self.ros_worker.node.reason_flag.connect(
             self.ros_worker.node.StartReasoning, Qt.ConnectionType.QueuedConnection
         )
@@ -1252,7 +1375,7 @@ class VisionRecognizePage(QWidget):
         self.tongueai_btn = QPushButton("◀ 健康检测")
         self.tongueai_btn.setObjectName("InkBtn_Action")
         self.tongueai_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.tongueai_btn.clicked.connect(self.tongueai_btn.emit)
+        self.tongueai_btn.clicked.connect(self.tongueai_clicked.emit)
 
         self.back_btn = QPushButton("◀ 返回主页")
         self.back_btn.setObjectName("InkBtn_Back")

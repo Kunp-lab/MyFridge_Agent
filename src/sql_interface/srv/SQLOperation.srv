@@ -3,10 +3,16 @@ uint32 id
 string name
 string category
 uint32 expiry_date
-string location
+uint32 location
 float32 calories_per_unit
 string nutritional_info
 string notes
+string detected_at
+string health_status
+string health_summary
+string health_raw_json
+string health_history_json
+uint32 query_limit
 
 ---
 
@@ -15,7 +21,12 @@ uint32 id
 string name
 string category
 uint32 expiry_date
-string location
+uint32 location
 float32 calories_per_unit
 string nutritional_info
 string notes
+string detected_at
+string health_status
+string health_summary
+string health_raw_json
+string health_history_json

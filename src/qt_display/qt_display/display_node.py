@@ -27,6 +27,8 @@ class DisplayNode(Node, QObject):
     image_updated = Signal(QImage)
     reason_flag = Signal()
     recommend_updated = Signal(str)
+    tongue_health_updated = Signal(str)
+    food_recognition_updated = Signal(str)
 
     def __init__(self, name: str):
         Node.__init__(self, node_name=name)  # 先初始化 Node
@@ -60,24 +62,26 @@ class DisplayNode(Node, QObject):
         self._reasoning_in_progress = False
         self._reasoning_thread = None
 
-        self._recommend_lock =threading.Lock()
-        self._recommend_thread = None 
+        self._recommend_lock = threading.Lock()
+        self._recommend_thread = None
         self._recommend_in_progress = False
-        
+        self._tongue_lock = threading.Lock()
+        self._tongue_thread = None
+        self._tongue_in_progress = False
+        self._location_lock = threading.Lock()
+        self._location_cursor = 1
+
     def init_mqtt_connect(self):
         def on_connect(client, userdata, flags, reason_code, properties=None):
             self.get_logger().info(f"[*] 已连接到 Broker")
-            # 连接成功后立刻订阅结果话题
             client.subscribe(Setting.TOPIC_RECEIVE.value)
             self.get_logger().info(
                 f"[*] 已订阅话题: {Setting.TOPIC_RECEIVE.value}，等待 AI 回复..."
             )
 
         def on_message(client, userdata, msg):
-            self.get_logger().info(f"\n[√] 收到来自 {msg.topic} 的推送:")
-            self.get_logger().info(f"内容: {msg.payload.decode()}")
-            # 收到结果后，可以安全退出
-            client.disconnect()
+            self.get_logger().info(f"[√] 收到来自 {msg.topic} 的舌诊推送")
+            self._handle_tongue_result_message(msg.payload)
 
         self.Ton_server.on_connect = on_connect
         self.Ton_server.on_message = on_message
@@ -111,39 +115,37 @@ class DisplayNode(Node, QObject):
         self.image_updated.emit(qimage.copy())
 
     def timer_callback(self):
-        for id in range(9):  # id 从 0 到 8，对应 request.id = id+1 ?
-            self.SqlOpSend_(id + 1,self.SymCallback_)
+        for location in range(9):
+            self.SqlOpSend_(location + 1, self.SymCallback_)
             self.data_updated.emit(self.ingredient[:])
 
-    def SqlOpSend_(self, id: int,callback):
+    def SqlOpSend_(self, location: int, callback):
         try:
             if not self.clients_sql.wait_for_service(0.5):
-                self.get_logger().warn(f"服务 /sql_operation 未上线,id={id}")
+                self.get_logger().warn(f"服务 /sql_operation 未上线,location={location}")
                 return
             request = SQLOperation.Request()
             request.operation = 4
-            request.id = id
+            request.location = location
             future = self.clients_sql.call_async(request)
             future.add_done_callback(callback=callback)
-        except:
-            self.get_logger().warn("error")
-        pass
+        except Exception as e:
+            self.get_logger().warn(f"查询位置 {location} 失败: {e}")
 
     def SymCallback_(self, future):
         try:
             response = future.result()
-            # 更新本地数据
-            if 1 <= response.id <= 9:
-                idx = response.id - 1
-                if 0 <= idx < 9:
+            if 1 <= response.location <= 9:
+                idx = response.location - 1
+                if response.is_success:
                     self.ingredient[idx] = [
                         response.name,
                         response.expiry_date,
-                        [response.nutritional_info],  # 注意：你原来用了列表
+                        [response.nutritional_info],
                         [response.notes],
                     ]
-            else:
-                pass
+                else:
+                    self.ingredient[idx] = ["", -1, [], []]
         except Exception as e:
             self.get_logger().error(f"Service call failed: {e}")
 
@@ -176,13 +178,36 @@ class DisplayNode(Node, QObject):
                 self.get_logger().info("推荐任务仍在进行中，忽略重复触发")
                 return
             self._recommend_in_progress = True
-        
+
         self._recommend_thread = threading.Thread(
             target=self._run_recommend_task,
             daemon=True,
-            name= "food-recommend"
+            name="food-recommend",
         )
         self._recommend_thread.start()
+
+    @Slot()
+    def StartTongueDiagnosis(self):
+        with self._image_lock:
+            if self.image_temp is None:
+                self.tongue_health_updated.emit("暂无可用于舌诊的图像，请先调整摄像头画面。")
+                self.get_logger().warn("暂无可用于舌诊的图像")
+                return
+            image_snapshot = self.image_temp.copy()
+
+        with self._tongue_lock:
+            if self._tongue_in_progress:
+                self.get_logger().info("舌诊任务仍在进行中，忽略重复触发")
+                return
+            self._tongue_in_progress = True
+
+        self._tongue_thread = threading.Thread(
+            target=self._run_tongue_task,
+            args=(image_snapshot,),
+            daemon=True,
+            name="tongue-diagnosis",
+        )
+        self._tongue_thread.start()
 
     def _run_recommend_task(self):
         try:
@@ -198,7 +223,17 @@ class DisplayNode(Node, QObject):
         finally:
             with self._recommend_lock:
                 self._recommend_in_progress = False
-    
+
+    def _run_tongue_task(self, image: np.ndarray):
+        try:
+            self._publish_tongue_image(image)
+            self.tongue_health_updated.emit("舌诊图片已发送，正在等待健康检测结果......")
+        except Exception as e:
+            self.get_logger().error(f"舌诊任务执行失败:{e}")
+            self.tongue_health_updated.emit("健康检测发送失败，请稍后重试。")
+            with self._tongue_lock:
+                self._tongue_in_progress = False
+
     def _run_reasoning_task(self, image: np.ndarray):
         try:
             result = self._request_reasoning_result(image)
@@ -213,24 +248,143 @@ class DisplayNode(Node, QObject):
                 self._reasoning_in_progress = False
 
     def _submit_reasoning_result(self, result: dict):
+        self._refresh_ingredient_slots_from_db()
+        location = self._allocate_location()
         request = SQLOperation.Request()
         request.operation = 1
         request.name = result["名字"]
         request.expiry_date = int(result["保质期"])
         request.nutritional_info = result["营养价值"]
         request.notes = result["食用建议"]
+        request.location = location
 
         future = self.clients_sql.call_async(request)
         future.add_done_callback(self.SymCallback_)
-        self.get_logger().info(f"识别完成，已提交食材信息: {request.name}")
+        future.add_done_callback(
+            lambda fut, result_snapshot=dict(result), slot=location: self._food_submit_callback(
+                fut, result_snapshot, slot
+            )
+        )
+        self.get_logger().info(
+            f"识别完成，已提交食材信息: {request.name}, location={request.location}"
+        )
+
+    def _food_submit_callback(self, future, result: dict, location: int):
+        try:
+            response = future.result()
+            if not response.is_success:
+                self.food_recognition_updated.emit("食材识别已完成，但写入数据库失败，请稍后重试。")
+                return
+
+            self.food_recognition_updated.emit(
+                self._format_food_recognition_text(result, location)
+            )
+        except Exception as e:
+            self.get_logger().error(f"食材识别结果回调失败:{e}")
+            self.food_recognition_updated.emit("食材识别已完成，但结果提示生成失败。")
+
+    def _format_food_recognition_text(self, result: dict, location: int) -> str:
+        row = ((location - 1) // 3) + 1
+        col = ((location - 1) % 3) + 1
+        name = str(result.get("名字", "未识别")).strip()
+        expiry = str(result.get("保质期", "未识别")).strip()
+        nutrition = str(result.get("营养价值", "未识别")).strip()
+        notes = str(result.get("食用建议", "未识别")).strip()
+
+        return (
+            f"识别完成：{name}\n"
+            f"保质期：{expiry} 天\n"
+            f"营养价值：{nutrition}\n"
+            f"食用建议：{notes}\n"
+            f"推荐放置位置：第 {location} 格（第 {row} 行，第 {col} 列）"
+        )
+
+    def _refresh_ingredient_slots_from_db(self):
+        for location in range(1, 10):
+            response = self._query_slot_by_location(location)
+            if response is None:
+                continue
+
+            idx = location - 1
+            if response.is_success:
+                self.ingredient[idx] = [
+                    response.name,
+                    response.expiry_date,
+                    [response.nutritional_info],
+                    [response.notes],
+                ]
+            else:
+                self.ingredient[idx] = ["", -1, [], []]
+
+    def _query_slot_by_location(self, location: int):
+        if not self.clients_sql.wait_for_service(0.5):
+            self.get_logger().warn(f"服务 /sql_operation 未上线,location={location}")
+            return None
+
+        request = SQLOperation.Request()
+        request.operation = 4
+        request.location = location
+        future = self.clients_sql.call_async(request)
+
+        timeout = time.time() + 1.5
+        while not future.done() and time.time() < timeout:
+            time.sleep(0.05)
+
+        if not future.done():
+            self.get_logger().warn(f"查询位置 {location} 超时")
+            return None
+
+        try:
+            return future.result()
+        except Exception as e:
+            self.get_logger().error(f"查询位置 {location} 失败: {e}")
+            return None
+
+    def _allocate_location(self) -> int:
+        with self._location_lock:
+            empty_locations = []
+            for idx, item in enumerate(self.ingredient, start=1):
+                name = item[0].strip() if isinstance(item[0], str) else ""
+                if not name:
+                    empty_locations.append(idx)
+
+            if not empty_locations:
+                raise RuntimeError("九宫格位置已满，无法为新食材分配存储位置")
+
+            for offset in range(9):
+                candidate = ((self._location_cursor - 1 + offset) % 9) + 1
+                if candidate in empty_locations:
+                    self._location_cursor = (candidate % 9) + 1
+                    return candidate
+
+            chosen = empty_locations[0]
+            self._location_cursor = (chosen % 9) + 1
+            return chosen
+
+    def _publish_tongue_image(self, image: np.ndarray):
+        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+        success, encoded = cv2.imencode(".jpg", image, encode_param)
+        if not success:
+            raise ValueError("舌诊图片编码失败")
+
+        result = self.Ton_server.publish(
+            Setting.TOPIC_SEND.value, payload=encoded.tobytes(), qos=0
+        )
+        result.wait_for_publish()
+        if result.rc != mqtt.MQTT_ERR_SUCCESS:
+            raise RuntimeError(f"MQTT 发布失败，错误码: {result.rc}")
+
+        self.get_logger().info(
+            f"[*] 已将舌诊图像发送到 {Setting.TOPIC_SEND.value}，record_id={Setting.TONGUE_RECORD_ID.value}"
+        )
 
     def _request_reasoning_result(self, image: np.ndarray):
         system_prompt = """你是一个严格的食物分析助手。
         请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
         {
-        "名字": "取常见食物名字",
-        "营养价值": "10个字以上",
-        "食用建议": "10个字以上",
+        "名字": "取常见食物名字，不要加修饰",
+        "营养价值": "20个字以上",
+        "食用建议": "20个字以上",
         "保质期": "假设今天放入这种食物，保质期大概为几天，单位为天,数据类型为int"
         }"""
 
@@ -282,6 +436,7 @@ class DisplayNode(Node, QObject):
             return None
 
         current_context = self._build_hangzhou_context()
+        health_summary = self._build_recent_health_summary()
 
         system_prompt = """你是一个严格的厨房营养与食谱推荐助手。
         请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
@@ -302,12 +457,15 @@ class DisplayNode(Node, QObject):
                             "type": "text",
                             "text": (
                                 f"{current_context}\n"
+                                "以下是用户最近几次健康检测摘要，请仅基于提供内容酌情参考，不要夸大为医疗诊断。\n"
+                                f"{health_summary}\n"
                                 "以下是冰箱中的现有食材信息，请结合这些内容给出推荐。\n"
                                 f"{inventory_summary}\n"
                                 "要求：\n"
                                 "1. 优先使用已有且临近保质期的食材。\n"
                                 "2. 推荐内容要明确哪些食材需要额外购买。\n"
-                                "3. 近几天营养概括只能基于提供的数据，不要虚构体检或摄入记录。"
+                                "3. 近几天营养概括只能基于提供的数据，不要虚构体检或摄入记录。\n"
+                                "4. 健康检测信息只能作为生活方式参考，不要输出医疗确诊表述。"
                             ),
                         },
                     ],
@@ -337,6 +495,172 @@ class DisplayNode(Node, QObject):
                 }
             return None
         return None
+
+    def _handle_tongue_result_message(self, payload: bytes):
+        try:
+            payload_text = payload.decode("utf-8")
+            result_data = json.loads(payload_text)
+            formatted_text, db_record = self._format_tongue_result(result_data)
+            self._submit_health_status_result(db_record)
+            self.tongue_health_updated.emit(formatted_text)
+        except Exception as e:
+            self.get_logger().error(f"处理舌诊 MQTT 结果失败:{e}")
+            self.tongue_health_updated.emit("健康检测结果解析失败，请稍后重试。")
+        finally:
+            with self._tongue_lock:
+                self._tongue_in_progress = False
+
+    def _format_tongue_result(self, result_data: dict):
+        code = int(result_data.get("code", -1))
+        detected_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        result = result_data.get("result") or {}
+
+        if code != 1:
+            summary = self._build_tongue_error_summary(code)
+            formatted_text = (
+                f"健康检测时间：{detected_at}\n"
+                f"检测状态：图像不合规\n"
+                f"结果说明：{summary}"
+            )
+            db_record = {
+                "detected_at": detected_at,
+                "health_status": "图像不合规",
+                "health_summary": summary,
+                "health_raw_json": json.dumps(result_data, ensure_ascii=False),
+            }
+            return formatted_text, db_record
+
+        tongue_color = str(result.get("tongue_color", "未识别")).strip()
+        coating_color = str(result.get("coating_color", "未识别")).strip()
+        thickness = str(result.get("thickness", "未识别")).strip()
+        rot_greasy = str(result.get("rot_greasy", "未识别")).strip()
+
+        status = self._infer_health_status(
+            tongue_color=tongue_color,
+            coating_color=coating_color,
+            thickness=thickness,
+            rot_greasy=rot_greasy,
+        )
+        summary = (
+            f"舌色{tongue_color}；舌苔{coating_color}；厚薄表现为{thickness}；"
+            f"腻腐表现为{rot_greasy}。"
+        )
+        formatted_text = (
+            f"健康检测时间：{detected_at}\n"
+            f"检测结论：{status}\n"
+            f"舌色：{tongue_color}\n"
+            f"苔色：{coating_color}\n"
+            f"厚薄：{thickness}\n"
+            f"腻腐：{rot_greasy}\n"
+            f"提示：{summary}"
+        )
+        db_record = {
+            "detected_at": detected_at,
+            "health_status": status,
+            "health_summary": summary,
+            "health_raw_json": json.dumps(result_data, ensure_ascii=False),
+        }
+        return formatted_text, db_record
+
+    def _submit_health_status_result(self, result: dict):
+        if not self.clients_sql.wait_for_service(0.5):
+            self.get_logger().warn("服务 /sql_operation 未上线，无法写入健康状态")
+            return
+
+        request = SQLOperation.Request()
+        request.operation = 5
+        request.detected_at = result["detected_at"]
+        request.health_status = result["health_status"]
+        request.health_summary = result["health_summary"]
+        request.health_raw_json = result["health_raw_json"]
+
+        future = self.clients_sql.call_async(request)
+        future.add_done_callback(self._health_status_callback)
+
+    def _health_status_callback(self, future):
+        try:
+            response = future.result()
+            if response.is_success:
+                self.get_logger().info(
+                    f"健康状态已写入数据库，id={response.id}, status={response.health_status}"
+                )
+            else:
+                self.get_logger().warn(f"健康状态写库失败: {response.notes}")
+        except Exception as e:
+            self.get_logger().error(f"健康状态写库回调失败:{e}")
+
+    def _query_recent_health_status(self, limit: int = 5):
+        if not self.clients_sql.wait_for_service(0.5):
+            self.get_logger().warn("服务 /sql_operation 未上线，无法查询健康状态")
+            return []
+
+        request = SQLOperation.Request()
+        request.operation = 6
+        request.query_limit = max(1, int(limit))
+        future = self.clients_sql.call_async(request)
+
+        timeout = time.time() + 3.0
+        while not future.done() and time.time() < timeout:
+            time.sleep(0.05)
+
+        if not future.done():
+            self.get_logger().warn("查询健康状态超时")
+            return []
+
+        try:
+            response = future.result()
+            if not response.is_success:
+                return []
+
+            history_json = response.health_history_json.strip()
+            if not history_json:
+                return []
+            return json.loads(history_json)
+        except Exception as e:
+            self.get_logger().error(f"解析健康状态历史失败:{e}")
+            return []
+
+    def _build_recent_health_summary(self) -> str:
+        history = self._query_recent_health_status(limit=5)
+        if not history:
+            return "最近暂无健康检测记录。"
+
+        lines = []
+        for idx, item in enumerate(history, start=1):
+            detected_at = str(item.get("detected_at", "未知时间")).strip()
+            health_status = str(item.get("health_status", "未识别")).strip()
+            health_summary = str(item.get("health_summary", "未查询到")).strip()
+            lines.append(
+                f"{idx}. 时间: {detected_at}; 状态: {health_status}; 摘要: {health_summary}"
+            )
+        return "\n".join(lines)
+
+    def _build_tongue_error_summary(self, code: int) -> str:
+        error_map = {
+            201: "图片不符合采集要求，请确保舌头完整、清晰并位于画面中心。",
+            202: "图片质量不足，请改善光线或重新拍摄后再试。",
+        }
+        return error_map.get(code, f"检测服务返回异常状态码 {code}。")
+
+    def _infer_health_status(
+        self, tongue_color: str, coating_color: str, thickness: str, rot_greasy: str
+    ) -> str:
+        normalized = " ".join(
+            [
+                tongue_color.lower(),
+                coating_color.lower(),
+                thickness.lower(),
+                rot_greasy.lower(),
+            ]
+        )
+        risk_tokens = ["purple", "yellow", "thick", "greasy", "腻", "腐", "dark", "black"]
+        stable_tokens = ["pink", "red", "light red", "white", "thin", "normal", "none"]
+
+        if any(token in normalized for token in risk_tokens):
+            return "舌象需关注"
+        if any(token in normalized for token in stable_tokens):
+            return "舌象相对平和"
+        return "舌象有待复查"
 
     def _extract_message_content(self, response) -> Optional[str]:
         try:

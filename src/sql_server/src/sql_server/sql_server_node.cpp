@@ -1,4 +1,40 @@
 #include "sql_server/sql_server_node.hpp"
+#include <sstream>
+
+namespace
+{
+std::string escape_json_string(const std::string &value)
+{
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (const char ch : value)
+    {
+        switch (ch)
+        {
+        case '"':
+            escaped += "\\\"";
+            break;
+        case '\\':
+            escaped += "\\\\";
+            break;
+        case '\n':
+            escaped += "\\n";
+            break;
+        case '\r':
+            escaped += "\\r";
+            break;
+        case '\t':
+            escaped += "\\t";
+            break;
+        default:
+            escaped += ch;
+            break;
+        }
+    }
+    return escaped;
+}
+} // namespace
+
 namespace CreativeRobot
 {
 SqlServerNode::SqlServerNode() : Node("SqlServerNode")
@@ -27,6 +63,8 @@ void SqlServerNode::init()
     {
         RCLCPP_INFO(this->get_logger(), "Opened database successfully\n");
     }
+
+    ensure_tables();
 
     // rclcpp init
     _sql_server = this->create_service<sql_interface::srv::SQLOperation>(
@@ -74,8 +112,7 @@ void SqlServerNode::init()
                 sqlite3_bind_text(stmt, 2, req->category.c_str(), -1,
                                   SQLITE_TRANSIENT);
                 sqlite3_bind_int(stmt, 3, req->expiry_date);
-                sqlite3_bind_text(stmt, 4, req->location.c_str(), -1,
-                                  SQLITE_TRANSIENT);
+                sqlite3_bind_int(stmt, 4, static_cast<int>(req->location));
                 sqlite3_bind_double(stmt, 5, req->calories_per_unit);
                 sqlite3_bind_text(stmt, 6, req->nutritional_info.c_str(), -1,
                                   SQLITE_TRANSIENT);
@@ -111,7 +148,7 @@ void SqlServerNode::init()
 
             case Operation::DELETE:
             {
-                // DELETE 根据 location 删除
+                // DELETE 根据 location 编号删除
                 const char *sql = "DELETE FROM ingredients WHERE location = ?;";
 
                 rc = sqlite3_prepare_v2(_db, sql, -1, &stmt, nullptr);
@@ -124,8 +161,7 @@ void SqlServerNode::init()
                     break;
                 }
 
-                sqlite3_bind_text(stmt, 1, req->location.c_str(), -1,
-                                  SQLITE_TRANSIENT);
+                sqlite3_bind_int(stmt, 1, static_cast<int>(req->location));
                 rc = sqlite3_step(stmt);
                 if (rc != SQLITE_DONE)
                 {
@@ -170,8 +206,7 @@ void SqlServerNode::init()
                 sqlite3_bind_text(stmt, 2, req->category.c_str(), -1,
                                   SQLITE_TRANSIENT);
                 sqlite3_bind_int(stmt, 3, req->expiry_date);
-                sqlite3_bind_text(stmt, 4, req->location.c_str(), -1,
-                                  SQLITE_TRANSIENT);
+                sqlite3_bind_int(stmt, 4, static_cast<int>(req->location));
                 sqlite3_bind_double(stmt, 5, req->calories_per_unit);
                 sqlite3_bind_text(stmt, 6, req->nutritional_info.c_str(), -1,
                                   SQLITE_TRANSIENT);
@@ -201,11 +236,11 @@ void SqlServerNode::init()
 
             case Operation::SELECT:
             {
-                // SELECT 根据 id 查询单条记录
+                // SELECT 根据位置编号查询单条记录
                 const char *sql =
                     "SELECT id, name, category, expiry_date, location, "
                     "calories_per_unit, nutritional_info, notes "
-                    "FROM ingredients WHERE id = ?;";
+                    "FROM ingredients WHERE location = ?;";
 
                 rc = sqlite3_prepare_v2(_db, sql, -1, &stmt, nullptr);
                 if (rc != SQLITE_OK)
@@ -216,7 +251,7 @@ void SqlServerNode::init()
                     resp->notes = sqlite3_errmsg(_db);
                     break;
                 }
-                sqlite3_bind_int(stmt, 1, req->id);
+                sqlite3_bind_int(stmt, 1, static_cast<int>(req->location));
 
                 rc = sqlite3_step(stmt);
                 if (rc == SQLITE_ROW)
@@ -227,8 +262,7 @@ void SqlServerNode::init()
                     resp->category = reinterpret_cast<const char *>(
                         sqlite3_column_text(stmt, 2));
                     resp->expiry_date = sqlite3_column_int(stmt, 3);
-                    resp->location = reinterpret_cast<const char *>(
-                        sqlite3_column_text(stmt, 4));
+                    resp->location = sqlite3_column_int(stmt, 4);
                     resp->calories_per_unit =
                         static_cast<float>(sqlite3_column_double(stmt, 5));
                     resp->nutritional_info = reinterpret_cast<const char *>(
@@ -237,15 +271,165 @@ void SqlServerNode::init()
                         sqlite3_column_text(stmt, 7));
                     resp->is_success = true;
                     RCLCPP_INFO(this->get_logger(),
-                                "SELECT success: id=%u, name=%s", resp->id,
-                                resp->name.c_str());
+                                "SELECT success: location=%u, name=%s",
+                                resp->location, resp->name.c_str());
                 }
                 else
                 {
+                    resp->location = req->location;
                     resp->notes = "未找到记录";
                     RCLCPP_INFO(this->get_logger(),
-                                "SELECT no record found for id: %u", req->id);
+                                "SELECT no record found for location: %u",
+                                req->location);
                 }
+                sqlite3_finalize(stmt);
+                break;
+            }
+
+            case Operation::APPEND_HEALTH_STATUS:
+            {
+                const char *sql = R"SQL(
+                    INSERT INTO health_status_history (
+                        detected_at,
+                        health_status,
+                        health_summary,
+                        health_raw_json
+                    ) VALUES (?, ?, ?, ?);
+                )SQL";
+
+                rc = sqlite3_prepare_v2(_db, sql, -1, &stmt, nullptr);
+                if (rc != SQLITE_OK)
+                {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Prepare APPEND_HEALTH_STATUS failed: %s",
+                                 sqlite3_errmsg(_db));
+                    resp->notes = sqlite3_errmsg(_db);
+                    break;
+                }
+
+                sqlite3_bind_text(stmt, 1, req->detected_at.c_str(), -1,
+                                  SQLITE_TRANSIENT);
+                sqlite3_bind_text(stmt, 2, req->health_status.c_str(), -1,
+                                  SQLITE_TRANSIENT);
+                sqlite3_bind_text(stmt, 3, req->health_summary.c_str(), -1,
+                                  SQLITE_TRANSIENT);
+                sqlite3_bind_text(stmt, 4, req->health_raw_json.c_str(), -1,
+                                  SQLITE_TRANSIENT);
+
+                rc = sqlite3_step(stmt);
+                if (rc != SQLITE_DONE)
+                {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "APPEND_HEALTH_STATUS failed: %s",
+                                 sqlite3_errmsg(_db));
+                    resp->notes = sqlite3_errmsg(_db);
+                }
+                else
+                {
+                    resp->is_success = true;
+                    resp->id =
+                        static_cast<uint32_t>(sqlite3_last_insert_rowid(_db));
+                    resp->detected_at = req->detected_at;
+                    resp->health_status = req->health_status;
+                    resp->health_summary = req->health_summary;
+                    resp->health_raw_json = req->health_raw_json;
+                    resp->notes = "健康状态记录写入成功";
+                }
+                sqlite3_finalize(stmt);
+                break;
+            }
+
+            case Operation::SELECT_RECENT_HEALTH_STATUS:
+            {
+                const uint32_t limit = req->query_limit == 0 ? 5 : req->query_limit;
+                const char *sql = R"SQL(
+                    SELECT id, detected_at, health_status, health_summary, health_raw_json
+                    FROM health_status_history
+                    ORDER BY datetime(detected_at) DESC, id DESC
+                    LIMIT ?;
+                )SQL";
+
+                rc = sqlite3_prepare_v2(_db, sql, -1, &stmt, nullptr);
+                if (rc != SQLITE_OK)
+                {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Prepare SELECT_RECENT_HEALTH_STATUS failed: %s",
+                                 sqlite3_errmsg(_db));
+                    resp->notes = sqlite3_errmsg(_db);
+                    break;
+                }
+
+                sqlite3_bind_int(stmt, 1, static_cast<int>(limit));
+
+                std::ostringstream history_stream;
+                history_stream << "[";
+                bool has_rows = false;
+                bool first = true;
+
+                while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
+                {
+                    const auto row_id = sqlite3_column_int(stmt, 0);
+                    const char *detected_at = reinterpret_cast<const char *>(
+                        sqlite3_column_text(stmt, 1));
+                    const char *health_status = reinterpret_cast<const char *>(
+                        sqlite3_column_text(stmt, 2));
+                    const char *health_summary = reinterpret_cast<const char *>(
+                        sqlite3_column_text(stmt, 3));
+                    const char *health_raw_json = reinterpret_cast<const char *>(
+                        sqlite3_column_text(stmt, 4));
+
+                    if (!has_rows)
+                    {
+                        resp->id = row_id;
+                        resp->detected_at = detected_at ? detected_at : "";
+                        resp->health_status = health_status ? health_status : "";
+                        resp->health_summary = health_summary ? health_summary : "";
+                        resp->health_raw_json = health_raw_json ? health_raw_json : "";
+                        has_rows = true;
+                    }
+
+                    if (!first)
+                    {
+                        history_stream << ",";
+                    }
+                    first = false;
+                    history_stream << "{"
+                                   << "\"id\":" << row_id << ","
+                                   << "\"detected_at\":\""
+                                   << escape_json_string(detected_at ? detected_at : "")
+                                   << "\","
+                                   << "\"health_status\":\""
+                                   << escape_json_string(health_status ? health_status : "")
+                                   << "\","
+                                   << "\"health_summary\":\""
+                                   << escape_json_string(health_summary ? health_summary : "")
+                                   << "\","
+                                   << "\"health_raw_json\":"
+                                   << (health_raw_json ? health_raw_json : "\"\"")
+                                   << "}";
+                }
+
+                history_stream << "]";
+
+                if (rc != SQLITE_DONE)
+                {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "SELECT_RECENT_HEALTH_STATUS failed: %s",
+                                 sqlite3_errmsg(_db));
+                    resp->notes = sqlite3_errmsg(_db);
+                }
+                else if (has_rows)
+                {
+                    resp->is_success = true;
+                    resp->health_history_json = history_stream.str();
+                    resp->notes = "查询最近健康状态成功";
+                }
+                else
+                {
+                    resp->health_history_json = "[]";
+                    resp->notes = "未找到健康状态记录";
+                }
+
                 sqlite3_finalize(stmt);
                 break;
             }
@@ -259,10 +443,42 @@ void SqlServerNode::init()
 
             // 可选：记录请求日志（调试用）
             RCLCPP_INFO(this->get_logger(),
-                        "处理完成 - 操作:%d, name:%s, nutritional_info:%.2f",
+                        "处理完成 - 操作:%d, name:%s, nutritional_info:%s",
                         req->operation, req->name.c_str(),
-                        req->nutritional_info);
+                        req->nutritional_info.c_str());
         });
+}
+
+bool SqlServerNode::execute_sql(const std::string &sql)
+{
+    char *err_msg = nullptr;
+    const int rc = sqlite3_exec(_db, sql.c_str(), nullptr, nullptr, &err_msg);
+    if (rc != SQLITE_OK)
+    {
+        RCLCPP_ERROR(this->get_logger(), "Execute SQL failed: %s",
+                     err_msg ? err_msg : sqlite3_errmsg(_db));
+        sqlite3_free(err_msg);
+        return false;
+    }
+    return true;
+}
+
+void SqlServerNode::ensure_tables()
+{
+    execute_sql(R"SQL(
+        CREATE TABLE IF NOT EXISTS health_status_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            detected_at TEXT NOT NULL,
+            health_status TEXT NOT NULL,
+            health_summary TEXT NOT NULL,
+            health_raw_json TEXT NOT NULL
+        );
+    )SQL");
+
+    execute_sql(R"SQL(
+        CREATE INDEX IF NOT EXISTS idx_health_status_detected_at
+        ON health_status_history (detected_at DESC, id DESC);
+    )SQL");
 }
 
 } // namespace CreativeRobot

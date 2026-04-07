@@ -3,7 +3,7 @@ CREATE TABLE ingredients (
     name TEXT NOT NULL,
     category TEXT NOT NULL,
     expiry_date INTEGER,
-    location TEXT,
+    location INTEGER NOT NULL UNIQUE CHECK (location BETWEEN 1 AND 9),
     calories_per_unit REAL,
     nutritional_info TEXT,
     notes TEXT,
