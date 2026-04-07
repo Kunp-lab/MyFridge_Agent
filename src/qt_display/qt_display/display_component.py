@@ -89,7 +89,7 @@ class StandbyScreen(QWidget):
         self.setStyleSheet(
             """
             QWidget#StandbyScreen {
-                background-color: #171919;
+                background-color: #D9D2C3;
             }
         """
         )
@@ -704,24 +704,24 @@ class FoodCard(QFrame):
         self.setStyleSheet(
             """
             QFrame#CardFrame {
-                background-color: #1B1E1E;
-                border: 2px solid #B79261;
+                background-color: #E8E0D0;
+                border: 2px solid #B08A5B;
                 border-radius: 14px;
             }
             QFrame#CardFrame:hover {
-                background-color: #232727;
-                border: 2px solid #D1A26A;
+                background-color: #F1E8D7;
+                border: 2px solid #C99A63;
             }
             QLabel {
-                border: 2px solid #6F5C46;
+                border: 2px solid #A88C69;
                 border-radius: 14px;
-                background-color: rgba(31, 34, 34, 0.92);
+                background-color: rgba(248, 242, 230, 0.96);
                 font-family: "Microsoft YaHei";
                 font-weight: bold;
                 font-size: 15px;
-                color: #E6D3B2;
+                color: #5A4430;
             }
-            QLabel#PillLabel_Name { color: #E8D8BB; }
+            QLabel#PillLabel_Name { color: #4B3525; }
         """
         )
 
@@ -1024,22 +1024,22 @@ class SmartFridgeUI(QMainWindow):
         self.setStyleSheet(
             """
             QMainWindow {
-                background-color: #121415;
+                background-color: #E6DED0;
             }
             QWidget#MainPage {
-                background-color: #121415;
+                background-color: #E6DED0;
             }
             QFrame#TitleBox {
                 border: 2px solid #B68A58;
                 border-radius: 12px;
-                background-color: #202323;
+                background-color: #F3E9D8;
                 padding: 6px;
             }
             QLabel#MainTitle {
                 font-family: "Microsoft YaHei", "SimHei";
                 font-size: 26px;
                 font-weight: 900;
-                color: #E7D6B7;
+                color: #4F3928;
                 letter-spacing: 4px;
             }
             QPushButton#ReturnBtn, QPushButton#VisionNavBtn, QPushButton#ExitBtn {
@@ -1063,14 +1063,14 @@ class SmartFridgeUI(QMainWindow):
                 border-left-color: #3A2C20;
             }
             QFrame#StatusBox {
-                background-color: #1D1F1F;
-                border: 2px solid #6B5A47;
+                background-color: #F4ECDE;
+                border: 2px solid #A68B6A;
                 border-radius: 10px;
             }
             QLabel#StatusText {
                 font-family: "Microsoft YaHei";
                 font-size: 13px;
-                color: #C8BCAB;
+                color: #5C4735;
             }
         """
         )
@@ -1272,33 +1272,33 @@ class VisionRecognizePage(QWidget):
         self.setStyleSheet(
             """
             QWidget#VisionPage {
-                background-color: #121415;
+                background-color: #E6DED0;
             }
             QLabel#VisionTitle {
                 font-family: "Microsoft YaHei", "KaiTi";
                 font-size: 24px;
                 font-weight: bold;
-                color: #E7D6B7;
+                color: #4F3928;
                 letter-spacing: 2px;
                 padding: 10px 14px;
             }
             QFrame#ImageCanvasFrame {
-                background-color: #262626;
+                background-color: #EADFCB;
                 border: 6px solid #B68A58;
                 border-radius: 14px;
             }
             QLabel#InkImageDisplay {
-                background-color: #0E1112;
-                border: 3px solid #231D18;
+                background-color: #F7F2E8;
+                border: 3px solid #8B7258;
                 border-radius: 8px;
             }
             QLabel#RecognizeResultText {
                 font-family: "Microsoft YaHei", "SimSun";
                 font-size: 15px;
                 font-weight: bold;
-                color: #D8C7A9;
-                background-color: #1B1E1E;
-                border: 2px solid #6C5945;
+                color: #5A4430;
+                background-color: #F4ECDE;
+                border: 2px solid #A68B6A;
                 padding: 10px 14px;
                 border-radius: 8px;
             }
@@ -1326,12 +1326,12 @@ class VisionRecognizePage(QWidget):
                 padding-top: 11px; padding-left: 26px;
             }
             QPushButton#InkBtn_Back {
-                background-color: #1B1E1E;
-                color: #D8C7A9;
-                border: 2px solid #7A644B;
+                background-color: #EFE5D4;
+                color: #5A4430;
+                border: 2px solid #9A7D5C;
             }
             QPushButton#InkBtn_Back:hover {
-                background-color: #242828;
+                background-color: #F7EEDC;
             }
         """
         )
