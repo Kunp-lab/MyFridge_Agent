@@ -315,6 +315,7 @@ class DisplayNode(Node, QObject):
             ],
             response_format={"type": "json_object"},
             max_tokens=4000,
+            temperature=0.1,
         )
 
         try:
