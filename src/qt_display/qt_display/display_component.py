@@ -1082,6 +1082,8 @@ class SmartFridgeUI(QMainWindow):
         self.setWindowTitle("冰鉴 · 珍馐录")
         self.resize(800, 1024)  # 稍微调大一点以便容纳新按钮
         self.food_grids = []
+        self.mock_temp = 4.0
+        self.mock_humidity = 78.0
 
         # 使用 StackedWidget 来管理 3 个页面
         self.stacked_widget = QStackedWidget()
@@ -1093,6 +1095,7 @@ class SmartFridgeUI(QMainWindow):
         self._init_vision_page()  # 索引 2 (新增)
 
         self._apply_global_style()
+        self._init_mock_environment_timer()
 
         # 默认显示待机页面 (索引 0)
         self.stacked_widget.setCurrentIndex(0)
@@ -1321,6 +1324,23 @@ class SmartFridgeUI(QMainWindow):
             self,
         )
         dialog.exec()
+
+    def _init_mock_environment_timer(self):
+        """初始化温湿度随机跳动展示（用于 UI 演示）"""
+        self.env_timer = QTimer(self)
+        self.env_timer.timeout.connect(self._update_random_environment)
+        self.env_timer.start(1000)
+        self._update_random_environment()
+
+    def _update_random_environment(self):
+        """每秒小幅随机波动，模拟冰箱环境传感器数据"""
+        self.mock_temp += random.uniform(-0.35, 0.35)
+        self.mock_humidity += random.uniform(-1.8, 1.8)
+
+        self.mock_temp = max(-2.0, min(10.0, self.mock_temp))
+        self.mock_humidity = max(35.0, min(95.0, self.mock_humidity))
+
+        self.set_environment(self.mock_temp, self.mock_humidity)
 
     def set_environment(self, temp: float, humidity: float):
         self.status_label.setText(
