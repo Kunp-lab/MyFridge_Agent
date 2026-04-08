@@ -1115,7 +1115,6 @@ class SmartFridgeUI(QMainWindow):
     def _handle_manual_capture(self):
         self.vision_page.set_result_text("正在识别中......")
         self.ros_worker.node.reason_flag.emit()
-        self.stacked_widget.setCurrentIndex(1)
         # 后续你可以这里调用摄像头拍照并更新 VisionPage 的图片
 
     def _handle_tongueai(self):
