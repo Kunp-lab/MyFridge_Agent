@@ -436,7 +436,7 @@ class DisplayNode(Node, QObject):
             return None
 
         current_context = self._build_hangzhou_context()
-        health_summary = self._build_recent_health_summary()
+        health_guidance = self._build_health_diet_guidance()
 
         system_prompt = """你是一个严格的厨房营养与食谱推荐助手。
         请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
@@ -447,7 +447,7 @@ class DisplayNode(Node, QObject):
         }"""
         self.get_logger().info(f"{inventory_summary}\n\n\n{current_context}")
         response = self.LLM_server.chat.completions.create(
-            model="glm-4.6v",  # 推荐快速模型
+            model="glm-4.6v-flash",  # 推荐快速模型
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
@@ -457,8 +457,8 @@ class DisplayNode(Node, QObject):
                             "type": "text",
                             "text": (
                                 f"{current_context}\n"
-                                "以下是用户最近几次健康检测摘要，请仅基于提供内容酌情参考，不要夸大为医疗诊断。\n"
-                                f"{health_summary}\n"
+                                "以下是基于健康状态整理的饮食关注点，请作为推荐的辅助参考。\n"
+                                f"{health_guidance}\n"
                                 "以下是冰箱中的现有食材信息，请结合这些内容给出推荐。\n"
                                 f"{inventory_summary}\n"
                                 "要求：\n"
@@ -530,10 +530,15 @@ class DisplayNode(Node, QObject):
             }
             return formatted_text, db_record
 
-        tongue_color = str(result.get("tongue_color", "未识别")).strip()
-        coating_color = str(result.get("coating_color", "未识别")).strip()
-        thickness = str(result.get("thickness", "未识别")).strip()
-        rot_greasy = str(result.get("rot_greasy", "未识别")).strip()
+        tongue_color_code = result.get("tongue_color", "未识别")
+        coating_color_code = result.get("coating_color", "未识别")
+        thickness_code = result.get("thickness", "未识别")
+        rot_greasy_code = result.get("rot_greasy", "未识别")
+
+        tongue_color = self._map_tongue_feature("tongue_color", tongue_color_code)
+        coating_color = self._map_tongue_feature("coating_color", coating_color_code)
+        thickness = self._map_tongue_feature("thickness", thickness_code)
+        rot_greasy = self._map_tongue_feature("rot_greasy", rot_greasy_code)
 
         status = self._infer_health_status(
             tongue_color=tongue_color,
@@ -541,9 +546,15 @@ class DisplayNode(Node, QObject):
             thickness=thickness,
             rot_greasy=rot_greasy,
         )
+        lifestyle_tip = self._build_health_lifestyle_tip(
+            tongue_color=tongue_color,
+            coating_color=coating_color,
+            thickness=thickness,
+            rot_greasy=rot_greasy,
+        )
         summary = (
-            f"舌色{tongue_color}；舌苔{coating_color}；厚薄表现为{thickness}；"
-            f"腻腐表现为{rot_greasy}。"
+            f"舌色为{tongue_color}；舌苔颜色为{coating_color}；厚薄表现为{thickness}；"
+            f"腻腐表现为{rot_greasy}。饮食参考：{lifestyle_tip}"
         )
         formatted_text = (
             f"健康检测时间：{detected_at}\n"
@@ -620,21 +631,6 @@ class DisplayNode(Node, QObject):
             self.get_logger().error(f"解析健康状态历史失败:{e}")
             return []
 
-    def _build_recent_health_summary(self) -> str:
-        history = self._query_recent_health_status(limit=5)
-        if not history:
-            return "最近暂无健康检测记录。"
-
-        lines = []
-        for idx, item in enumerate(history, start=1):
-            detected_at = str(item.get("detected_at", "未知时间")).strip()
-            health_status = str(item.get("health_status", "未识别")).strip()
-            health_summary = str(item.get("health_summary", "未查询到")).strip()
-            lines.append(
-                f"{idx}. 时间: {detected_at}; 状态: {health_status}; 摘要: {health_summary}"
-            )
-        return "\n".join(lines)
-
     def _build_tongue_error_summary(self, code: int) -> str:
         error_map = {
             201: "图片不符合采集要求，请确保舌头完整、清晰并位于画面中心。",
@@ -645,22 +641,142 @@ class DisplayNode(Node, QObject):
     def _infer_health_status(
         self, tongue_color: str, coating_color: str, thickness: str, rot_greasy: str
     ) -> str:
-        normalized = " ".join(
-            [
-                tongue_color.lower(),
-                coating_color.lower(),
-                thickness.lower(),
-                rot_greasy.lower(),
-            ]
-        )
-        risk_tokens = ["purple", "yellow", "thick", "greasy", "腻", "腐", "dark", "black"]
-        stable_tokens = ["pink", "red", "light red", "white", "thin", "normal", "none"]
+        risk_tokens = ["青紫", "灰黑", "黄苔", "厚", "腻", "腐", "绛"]
+        stable_tokens = ["淡红", "红舌", "白苔", "薄"]
 
-        if any(token in normalized for token in risk_tokens):
+        joined = f"{tongue_color}|{coating_color}|{thickness}|{rot_greasy}"
+        if any(token in joined for token in risk_tokens):
             return "舌象需关注"
-        if any(token in normalized for token in stable_tokens):
+        if any(token in joined for token in stable_tokens):
             return "舌象相对平和"
         return "舌象有待复查"
+
+    def _map_tongue_feature(self, field: str, value) -> str:
+        mapping = {
+            "tongue_color": {
+                0: "淡白舌",
+                1: "淡红舌",
+                2: "红舌",
+                3: "绛舌",
+                4: "青紫舌",
+            },
+            "coating_color": {
+                0: "白苔",
+                1: "黄苔",
+                2: "灰黑苔",
+            },
+            "thickness": {
+                0: "舌苔偏薄",
+                1: "舌苔偏厚",
+            },
+            "rot_greasy": {
+                0: "舌苔腻",
+                1: "舌苔腐",
+            },
+        }
+
+        if field not in mapping:
+            return str(value).strip() if str(value).strip() else "未识别"
+
+        code = self._normalize_tongue_code(value)
+        if code is None:
+            text = str(value).strip()
+            return text if text else "未识别"
+        return mapping[field].get(code, f"未知编码({code})")
+
+    def _normalize_tongue_code(self, value) -> Optional[int]:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float) and value.is_integer():
+            return int(value)
+
+        text = str(value).strip()
+        if not text:
+            return None
+        if re.fullmatch(r"-?\d+", text):
+            return int(text)
+        return None
+
+    def _build_health_lifestyle_tip(
+        self, tongue_color: str, coating_color: str, thickness: str, rot_greasy: str
+    ) -> str:
+        tips = []
+        joined = f"{tongue_color}|{coating_color}|{thickness}|{rot_greasy}"
+
+        if "黄苔" in joined or "灰黑苔" in joined:
+            tips.append("近期饮食宜清淡，少辛辣油炸，多补充水分")
+        if "舌苔偏厚" in joined or "舌苔腻" in joined or "舌苔腐" in joined:
+            tips.append("可优先选择易消化、少油腻的食物，减轻饮食负担")
+        if "淡白舌" in joined:
+            tips.append("可适当搭配温和且含优质蛋白的食材")
+        if "青紫舌" in joined or "绛舌" in joined:
+            tips.append("避免过度辛燥刺激，饮食以平衡温和为主")
+
+        if not tips:
+            tips.append("整体饮食以规律、清爽、均衡搭配为主")
+        return "；".join(tips)
+
+    def _format_health_history_item(self, item: dict) -> str:
+        raw = item.get("health_raw_json")
+        if isinstance(raw, dict):
+            result = raw.get("result") or {}
+            if result:
+                tongue_color = self._map_tongue_feature(
+                    "tongue_color", result.get("tongue_color")
+                )
+                coating_color = self._map_tongue_feature(
+                    "coating_color", result.get("coating_color")
+                )
+                thickness = self._map_tongue_feature("thickness", result.get("thickness"))
+                rot_greasy = self._map_tongue_feature(
+                    "rot_greasy", result.get("rot_greasy")
+                )
+                return (
+                    f"舌色为{tongue_color}；舌苔颜色为{coating_color}；"
+                    f"厚薄表现为{thickness}；腻腐表现为{rot_greasy}"
+                )
+
+        summary = str(item.get("health_summary", "未查询到")).strip()
+        return summary if summary else "未查询到"
+
+    def _build_health_diet_guidance(self) -> str:
+        history = self._query_recent_health_status(limit=3)
+        if not history:
+            return "暂无健康检测数据，可按均衡饮食原则推荐。"
+
+        guidance_lines = []
+        for idx, item in enumerate(history, start=1):
+            summary = self._format_health_history_item(item)
+            guidance_lines.append(f"{idx}. {summary}")
+
+        latest_summary = self._format_health_history_item(history[0])
+        latest_raw = history[0].get("health_raw_json")
+        extra_tip = "整体以清淡均衡为主。"
+        if isinstance(latest_raw, dict):
+            latest_result = latest_raw.get("result") or {}
+            extra_tip = self._build_health_lifestyle_tip(
+                tongue_color=self._map_tongue_feature(
+                    "tongue_color", latest_result.get("tongue_color")
+                ),
+                coating_color=self._map_tongue_feature(
+                    "coating_color", latest_result.get("coating_color")
+                ),
+                thickness=self._map_tongue_feature(
+                    "thickness", latest_result.get("thickness")
+                ),
+                rot_greasy=self._map_tongue_feature(
+                    "rot_greasy", latest_result.get("rot_greasy")
+                ),
+            )
+
+        return (
+            "最近健康状态记录：\n"
+            f"{chr(10).join(guidance_lines)}\n"
+            f"最新一次检测摘要：{latest_summary}\n"
+            f"饮食关注点：{extra_tip}"
+        )
 
     def _extract_message_content(self, response) -> Optional[str]:
         try:
