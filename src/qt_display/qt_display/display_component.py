@@ -553,7 +553,7 @@ class FoodDetailDialog(QDialog):
 class RecommendDialog(QDialog):
     def __init__(self, content: str, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("时令推荐")
+        self.setWindowTitle("推荐")
         self.resize(620, 520)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -569,7 +569,7 @@ class RecommendDialog(QDialog):
         layout.setSpacing(12)
 
         header_layout = QHBoxLayout()
-        title_label = QLabel("❖ 时 令 推 荐 ❖")
+        title_label = QLabel("❖ 推 荐 ❖")
         title_label.setObjectName("RecommendDialogTitle")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 

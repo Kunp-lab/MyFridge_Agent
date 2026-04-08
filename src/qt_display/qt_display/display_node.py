@@ -483,6 +483,16 @@ class DisplayNode(Node, QObject):
                 return None
 
             result = self._parse_json_response(raw_content)
+            nutrition_summary = str(result.get("近几天的营养状况概括", "")).strip()
+            if (not nutrition_summary) or (nutrition_summary == "未查询到"):
+                fallback_summary = self._resolve_nutrition_summary_with_health(
+                    health_guidance
+                )
+                if fallback_summary != "未查询到":
+                    result["近几天的营养状况概括"] = fallback_summary
+                    self.get_logger().info(
+                        "模型返回营养概括缺失，已使用健康检测摘要兜底填充。"
+                    )
             return result
         except Exception as e:
             fallback_text = self._extract_message_content(response)
@@ -777,6 +787,25 @@ class DisplayNode(Node, QObject):
             f"最新一次检测摘要：{latest_summary}\n"
             f"饮食关注点：{extra_tip}"
         )
+
+    def _resolve_nutrition_summary_with_health(self, health_guidance: str) -> str:
+        text = str(health_guidance).strip()
+        if not text or "暂无健康检测数据" in text:
+            return "未查询到"
+
+        latest_match = re.search(r"最新一次检测摘要：(.+)", text)
+        latest_summary = latest_match.group(1).strip() if latest_match else ""
+
+        tip_match = re.search(r"饮食关注点：(.+)", text)
+        diet_tip = tip_match.group(1).strip() if tip_match else ""
+
+        if latest_summary and diet_tip:
+            return f"{latest_summary}；饮食关注点：{diet_tip}"
+        if latest_summary:
+            return latest_summary
+        if diet_tip:
+            return f"饮食关注点：{diet_tip}"
+        return "未查询到"
 
     def _extract_message_content(self, response) -> Optional[str]:
         try:
