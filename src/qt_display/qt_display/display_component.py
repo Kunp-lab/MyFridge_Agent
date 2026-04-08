@@ -774,6 +774,118 @@ class FoodRecognizeDialog(QDialog):
         )
 
 
+class TongueHealthDialog(QDialog):
+    def __init__(self, content: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("健康检测结果")
+        self.resize(560, 420)
+        self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self._init_ui(content)
+
+    def _init_ui(self, content: str):
+        main_frame = QFrame(self)
+        main_frame.setGeometry(0, 0, 560, 420)
+        main_frame.setObjectName("TongueHealthDialogFrame")
+
+        layout = QVBoxLayout(main_frame)
+        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(12)
+
+        header_layout = QHBoxLayout()
+        title_label = QLabel("❖ 健 康 检 测 结 果 ❖")
+        title_label.setObjectName("TongueHealthDialogTitle")
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        close_btn = QPushButton("✖")
+        close_btn.setObjectName("CloseBtn")
+        close_btn.setFixedSize(36, 36)
+        close_btn.clicked.connect(self.accept)
+
+        header_layout.addWidget(title_label, stretch=1)
+        header_layout.addWidget(close_btn)
+        layout.addLayout(header_layout)
+
+        hint_label = QLabel("以下为本次舌诊检测分析结果（仅供生活方式参考）")
+        hint_label.setObjectName("TongueHealthHintLabel")
+        hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(hint_label)
+
+        self.content_edit = QTextEdit()
+        self.content_edit.setObjectName("TongueHealthContentEdit")
+        self.content_edit.setReadOnly(True)
+        self.content_edit.setPlainText(content)
+        layout.addWidget(self.content_edit, stretch=1)
+
+        footer_layout = QHBoxLayout()
+        footer_layout.addStretch()
+
+        confirm_btn = QPushButton("知道了")
+        confirm_btn.setObjectName("TongueHealthConfirmBtn")
+        confirm_btn.setFixedSize(120, 42)
+        confirm_btn.clicked.connect(self.accept)
+        footer_layout.addWidget(confirm_btn)
+        footer_layout.addStretch()
+        layout.addLayout(footer_layout)
+
+        self.setStyleSheet(
+            """
+            QFrame#TongueHealthDialogFrame {
+                background-color: #E6C687;
+                border: 6px solid #4A2B18;
+                border-top-color: #6B4126;
+                border-left-color: #6B4126;
+                border-bottom-color: #2F190D;
+                border-right-color: #2F190D;
+            }
+            QLabel#TongueHealthDialogTitle {
+                background-color: #7C6244;
+                color: #F3E2C1;
+                font-family: "Microsoft YaHei", "SimSun";
+                font-size: 19px;
+                font-weight: 900;
+                border: 4px solid #221D18;
+                padding: 6px;
+                letter-spacing: 2px;
+            }
+            QLabel#TongueHealthHintLabel {
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 15px;
+                font-weight: bold;
+                color: #4A2B18;
+            }
+            QTextEdit#TongueHealthContentEdit {
+                background-color: #1D1F1F;
+                color: #E7D6B7;
+                border: 4px solid #4A2B18;
+                border-top-color: #151211;
+                border-left-color: #151211;
+                border-bottom-color: #C29A6A;
+                border-right-color: #C29A6A;
+                font-family: "Microsoft YaHei", "SimSun";
+                font-size: 15px;
+                line-height: 1.5;
+                padding: 10px;
+            }
+            QPushButton#TongueHealthConfirmBtn {
+                background-color: #B68A58;
+                color: #211913;
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 16px;
+                font-weight: bold;
+                border: 4px solid #4A2B18;
+                border-top-color: #D9B07C;
+                border-left-color: #D9B07C;
+            }
+            QPushButton#TongueHealthConfirmBtn:pressed {
+                border-top-color: #2F190D;
+                border-left-color: #2F190D;
+                background-color: #8F6A42;
+            }
+        """
+        )
+
+
 # ==========================================
 # 食物卡片组件 (包含【毛笔一笔画圈】的核心算法)
 # ==========================================
@@ -1135,6 +1247,15 @@ class SmartFridgeUI(QMainWindow):
         dialog = FoodRecognizeDialog(text, self)
         dialog.exec()
 
+    def _show_tongue_health_dialog(self, text: str):
+        if "正在等待健康检测结果" in text or "舌诊图片已发送" in text:
+            self.vision_page.set_result_text(text)
+            return
+
+        self.vision_page.set_result_text("健康检测已完成，请查看弹窗。")
+        dialog = TongueHealthDialog(text, self)
+        dialog.exec()
+
     def _apply_global_style(self):
         # (已更新样式表：增加新导航按钮的样式)
         self.setStyleSheet(
@@ -1230,9 +1351,7 @@ class SmartFridgeUI(QMainWindow):
         self.ros_worker.node.food_recognition_updated.connect(
             self._show_food_recognition_dialog
         )
-        self.ros_worker.node.tongue_health_updated.connect(
-            self.vision_page.set_result_text
-        )
+        self.ros_worker.node.tongue_health_updated.connect(self._show_tongue_health_dialog)
         self.ros_worker.node.reason_flag.connect(
             self.ros_worker.node.StartReasoning, Qt.ConnectionType.QueuedConnection
         )
