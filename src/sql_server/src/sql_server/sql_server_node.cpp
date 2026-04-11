@@ -66,6 +66,11 @@ void SqlServerNode::init()
 
     ensure_tables();
 
+    _pos_subscriber = this->create_subscription<std_msgs::msg::Int16MultiArray>(
+        "/env/pos", 10,
+        std::bind(&SqlServerNode::on_position_update, this,
+                  std::placeholders::_1));
+
     // rclcpp init
     _sql_server = this->create_service<sql_interface::srv::SQLOperation>(
         "/sql_operation",
@@ -447,6 +452,128 @@ void SqlServerNode::init()
                         req->operation, req->name.c_str(),
                         req->nutritional_info.c_str());
         });
+}
+
+void SqlServerNode::on_position_update(
+    const std_msgs::msg::Int16MultiArray::SharedPtr msg)
+{
+    if (!msg || msg->data.size() < 2)
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "Ignore /env/pos message: invalid data size");
+        return;
+    }
+
+    const int action = static_cast<int>(msg->data[0]);
+    const int location = static_cast<int>(msg->data[1]);
+
+    if (action > 0)
+    {
+        if (!update_last_added_ingredient_location(location))
+        {
+            RCLCPP_WARN(this->get_logger(),
+                        "Failed to update last ingredient location to %d",
+                        location);
+        }
+    }
+    else if (action < 0)
+    {
+        if (!delete_ingredient_by_location(location))
+        {
+            RCLCPP_WARN(this->get_logger(),
+                        "No ingredient deleted for location %d", location);
+        }
+    }
+    else
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "Ignore /env/pos message: unknown action=%d", action);
+    }
+}
+
+bool SqlServerNode::update_last_added_ingredient_location(int location)
+{
+    sqlite3_stmt *stmt = nullptr;
+    const char *sql = R"SQL(
+        UPDATE ingredients
+        SET location = ?
+        WHERE id = (SELECT id FROM ingredients ORDER BY id DESC LIMIT 1);
+    )SQL";
+
+    int rc = sqlite3_prepare_v2(_db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Prepare update_last_added_ingredient_location failed: %s",
+                     sqlite3_errmsg(_db));
+        return false;
+    }
+
+    sqlite3_bind_int(stmt, 1, location);
+    rc = sqlite3_step(stmt);
+    const bool done = (rc == SQLITE_DONE);
+    const int changes = done ? sqlite3_changes(_db) : 0;
+    sqlite3_finalize(stmt);
+
+    if (!done)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Update last ingredient location failed: %s",
+                     sqlite3_errmsg(_db));
+        return false;
+    }
+
+    if (changes == 0)
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "No ingredient record found to update location=%d",
+                    location);
+        return false;
+    }
+
+    RCLCPP_INFO(this->get_logger(),
+                "Updated last ingredient location to %d", location);
+    return true;
+}
+
+bool SqlServerNode::delete_ingredient_by_location(int location)
+{
+    sqlite3_stmt *stmt = nullptr;
+    const char *sql = "DELETE FROM ingredients WHERE location = ?;";
+
+    int rc = sqlite3_prepare_v2(_db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Prepare delete_ingredient_by_location failed: %s",
+                     sqlite3_errmsg(_db));
+        return false;
+    }
+
+    sqlite3_bind_int(stmt, 1, location);
+    rc = sqlite3_step(stmt);
+    const bool done = (rc == SQLITE_DONE);
+    const int changes = done ? sqlite3_changes(_db) : 0;
+    sqlite3_finalize(stmt);
+
+    if (!done)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Delete ingredient by location failed: %s",
+                     sqlite3_errmsg(_db));
+        return false;
+    }
+
+    if (changes == 0)
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "No ingredient found at location=%d", location);
+        return false;
+    }
+
+    RCLCPP_INFO(this->get_logger(),
+                "Deleted %d ingredient(s) at location=%d", changes, location);
+    return true;
 }
 
 bool SqlServerNode::execute_sql(const std::string &sql)

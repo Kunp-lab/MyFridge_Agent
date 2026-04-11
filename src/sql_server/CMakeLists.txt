@@ -18,6 +18,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(sql_interface REQUIRED)
 
@@ -37,6 +38,7 @@ target_include_directories(sql_server_node PUBLIC
 ament_target_dependencies(
   sql_server_node
   "rclcpp"
+  "std_msgs"
   SQLite3
   sql_interface
 )

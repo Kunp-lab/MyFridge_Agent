@@ -28,9 +28,10 @@ class SerialPort
         }
     }
 
-    void setCallback(std::function<void(const std::vector<uint8_t> &)> callback)
+    void
+    setDefaultHandler(std::function<void(const std::vector<uint8_t> &)> handler)
     {
-        callback_ = callback;
+        callback_ = handler;
     }
 
     void setProtocolParser(
@@ -40,13 +41,20 @@ class SerialPort
         protocol_parser_ = parser;
     }
 
-    void setFrameFormat(const std::vector<uint8_t> &header,
-                        const std::vector<uint8_t> &tail,
-                        size_t min_payload_size = 0)
+    void setRxFrameFormat(const std::vector<uint8_t> &header,
+                          const std::vector<uint8_t> &tail,
+                          size_t min_payload_size = 0)
     {
         frame_header_ = header;
         frame_tail_ = tail;
         frame_min_payload_size_ = min_payload_size;
+    }
+
+    void setTxFrameFormat(const std::vector<uint8_t> &header,
+                          const std::vector<uint8_t> &tail)
+    {
+        send_frame_header_ = header;
+        send_frame_tail_ = tail;
     }
 
     void setFunctionCodePosition(size_t offset)
@@ -157,12 +165,46 @@ class SerialPort
         return static_cast<size_t>(written);
     }
 
-    void flush()
+    size_t writePacket(uint8_t func_code, const std::vector<uint8_t> &payload)
     {
-        if (is_open_)
+        const auto &header =
+            send_frame_header_.empty() ? frame_header_ : send_frame_header_;
+        const auto &tail =
+            send_frame_tail_.empty() ? frame_tail_ : send_frame_tail_;
+
+        if (header.empty() || tail.empty())
         {
-            tcflush(fd_, TCIOFLUSH);
+            throw std::runtime_error("Frame format not set for sending");
         }
+
+        std::vector<uint8_t> packet;
+        packet.reserve(header.size() + 1 + payload.size() + tail.size());
+
+        // Add header
+        packet.insert(packet.end(), header.begin(), header.end());
+
+        // Add function code
+        packet.push_back(func_code);
+
+        // Add payload
+        packet.insert(packet.end(), payload.begin(), payload.end());
+
+        // Add tail
+        packet.insert(packet.end(), tail.begin(), tail.end());
+
+        return write(packet);
+    }
+
+    size_t writePacket(uint8_t func_code, const std::string &payload)
+    {
+        return writePacket(
+            func_code, std::vector<uint8_t>(payload.begin(), payload.end()));
+    }
+
+    size_t writePacket(uint8_t func_code, const uint8_t *payload, size_t size)
+    {
+        return writePacket(func_code,
+                           std::vector<uint8_t>(payload, payload + size));
     }
 
   private:
@@ -181,6 +223,8 @@ class SerialPort
     size_t frame_min_payload_size_ = 0;
     size_t function_code_offset_ = 0;
     std::vector<uint8_t> frame_buffer_;
+    std::vector<uint8_t> send_frame_header_;
+    std::vector<uint8_t> send_frame_tail_;
     std::map<uint8_t, std::function<void(const std::vector<uint8_t> &)>>
         function_handlers_;
 

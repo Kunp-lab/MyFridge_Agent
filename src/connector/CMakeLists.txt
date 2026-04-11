@@ -18,6 +18,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 
 add_executable(uart_node src/uart_node.cpp)
 target_include_directories(uart_node PUBLIC
@@ -26,6 +27,7 @@ target_include_directories(uart_node PUBLIC
 ament_target_dependencies(
   uart_node
   "rclcpp"
+  "std_msgs"
 )
 
 install(TARGETS uart_node

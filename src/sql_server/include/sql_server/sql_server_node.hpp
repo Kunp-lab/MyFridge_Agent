@@ -3,6 +3,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sql_interface/srv/sql_operation.hpp"
+#include "std_msgs/msg/int16_multi_array.hpp"
 #include <memory>
 #include <sqlite3.h>
 #include <string>
@@ -21,11 +22,16 @@ class SqlServerNode : public rclcpp::Node
 
   private:
     rclcpp::Service<sql_interface::srv::SQLOperation>::SharedPtr _sql_server;
+    rclcpp::Subscription<std_msgs::msg::Int16MultiArray>::SharedPtr
+        _pos_subscriber;
     sqlite3 *_db;
     int _rc;
 
     void ensure_tables();
     bool execute_sql(const std::string &sql);
+    void on_position_update(const std_msgs::msg::Int16MultiArray::SharedPtr msg);
+    bool update_last_added_ingredient_location(int location);
+    bool delete_ingredient_by_location(int location);
 };
 
 enum class Operation : uint8_t

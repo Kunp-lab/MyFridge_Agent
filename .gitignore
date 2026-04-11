@@ -5,6 +5,7 @@ log/
 
 #模型
 model/
+.codex
 
 # Python 缓存等常见忽略
 __pycache__/
