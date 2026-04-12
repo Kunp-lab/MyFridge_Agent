@@ -8,10 +8,10 @@
 #include <string>
 #include <thread>
 
-class UartConnector : public rclcpp::Node
+class MCUConnector : public rclcpp::Node
 {
   public:
-    UartConnector()
+    MCUConnector()
         : Node("uart_connector"), serial_("/dev/ttyACM0", 115200),
           running_(true)
     {
@@ -19,7 +19,7 @@ class UartConnector : public rclcpp::Node
         serial_init();
     }
 
-    ~UartConnector() { serial_.shutdown(); }
+    ~MCUConnector() { serial_.shutdown(); }
 
     void ros2_init()
     {
@@ -28,7 +28,7 @@ class UartConnector : public rclcpp::Node
                 "/env/dht11", 10);
         timer_ = this->create_wall_timer(
             std::chrono::seconds(1),
-            std::bind(&UartConnector::publishData, this));
+            std::bind(&MCUConnector::publishData, this));
         publisher_pos_ = this->create_publisher<std_msgs::msg::Int16MultiArray>(
             "/env/pos", 10);
     }
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
     rclcpp::init(argc, argv);
     try
     {
-        auto node = std::make_shared<UartConnector>();
+        auto node = std::make_shared<MCUConnector>();
         rclcpp::spin(node);
     }
     catch (const std::exception &e)

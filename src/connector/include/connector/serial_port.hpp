@@ -1,4 +1,8 @@
+#if !defined(__SERIALPORT_HPP__)
+#define __SERIALPORT_HPP__
+
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <fcntl.h>
 #include <functional>
@@ -513,3 +517,5 @@ class SerialPort
         tcsetattr(fd_, TCSANOW, &tio);
     }
 };
+
+#endif // __SERIALPORT_HPP__
