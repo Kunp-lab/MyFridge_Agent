@@ -36,32 +36,55 @@ class MCUConnector : public rclcpp::Node
     void serial_init()
     {
         // Set receive frame format: header 0xB0, tail 0xC0
-        serial_.setRxFrameFormat({0xB0}, {0xC0});
+        serial_.setRxFrameFormat({0xA0}, {0xC0});
         serial_.setFunctionCodePosition(0);
 
         // Set transmit frame format: header 0xA0, tail 0xC0
         serial_.setTxFrameFormat({0xA0}, {0xC0});
 
         serial_.addFunctionHandler(
-            0x01,
+            0xB2, // 温湿度
             [this](const std::vector<uint8_t> &packet)
             {
                 RCLCPP_INFO(this->get_logger(),
-                            "Function 0x01 packet received, len=%zu",
+                            "Function 0xB2 packet received, len=%zu",
                             packet.size());
-                std::lock_guard<std::mutex> lock(data_mutex_);
-                latest_data_.assign(packet.begin(), packet.end());
+                if (packet.size() != 8)
+                {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 " Function 0xB2 packet received error");
+                    return;
+                }
+
+                std::lock_guard<std::mutex> lock(dht11_data_mutex_);
+                FloatConverter temperature_fc{};
+                temperature_fc.ucharfmt.assign(packet.begin(),
+                                               packet.begin() + 4);
+                dht11_data_[0] = temperature_fc.floatfmt;
+
+                FloatConverter humidity_fc{};
+                humidity_fc.ucharfmt.assign(packet.begin() + 4,
+                                            packet.begin() + 8);
+                dht11_data_[1] = humidity_fc.floatfmt;
             });
 
         serial_.addFunctionHandler(
-            0x02,
+            0xB1, // 压力
             [this](const std::vector<uint8_t> &packet)
             {
                 RCLCPP_INFO(this->get_logger(),
-                            "Function 0x02 packet received, len=%zu",
+                            "Function 0xB1 packet received, len=%zu",
                             packet.size());
-                std::lock_guard<std::mutex> lock(data_mutex_);
-                latest_data_.assign(packet.begin(), packet.end());
+                if (packet.size() != 7)
+                {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 " Function 0xB1 packet received error");
+                    return;
+                }
+                std::lock_guard<std::mutex> lock(position_data_mutex_);
+                now_position_data_.swap(last_position_data_);
+                for (size_t i = 0; i < 7; i++)
+                    now_position_data_[i] = packet[i];
             });
 
         serial_.setDefaultHandler(
@@ -70,6 +93,7 @@ class MCUConnector : public rclcpp::Node
                 RCLCPP_INFO(this->get_logger(),
                             "Unknown function packet received, len=%zu",
                             packet.size());
+                return;
                 std::lock_guard<std::mutex> lock(data_mutex_);
                 latest_data_.assign(packet.begin(), packet.end());
             });
@@ -100,8 +124,10 @@ class MCUConnector : public rclcpp::Node
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Int16MultiArray>>
         publisher_pos_;
     std::vector<float> dht11_data_ = std::vector<float>(2, 0);
-    std::vector<int> last_position_data_ = std::vector<int>(9, 0);
-    std::vector<int> now_position_data_ = std::vector<int>(9, 0);
+    std::mutex dht11_data_mutex_;
+    std::mutex position_data_mutex_;
+    std::vector<int> last_position_data_ = std::vector<int>(7, 0);
+    std::vector<int> now_position_data_ = std::vector<int>(7, 0);
     void publishData()
     {
         /**
@@ -133,7 +159,7 @@ class MCUConnector : public rclcpp::Node
         std::vector<int> append_list{};
         std::vector<int> delete_list{};
 
-        for (int i = 0; i < last_position_data_.size(); i++)
+        for (size_t i = 0; i < last_position_data_.size(); i++)
         {
             auto temp = last_position_data_[i] - now_position_data_[i];
             if (temp == 1)

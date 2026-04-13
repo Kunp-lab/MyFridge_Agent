@@ -284,7 +284,17 @@ class SerialPort
                 auto it = function_handlers_.find(func_code);
                 if (it != function_handlers_.end())
                 {
-                    it->second(packet);
+                    std::vector<uint8_t> payload_without_func;
+                    payload_without_func.reserve(packet.size() - 1);
+                    payload_without_func.insert(payload_without_func.end(),
+                                                packet.begin(),
+                                                packet.begin() +
+                                                    function_code_offset_);
+                    payload_without_func.insert(payload_without_func.end(),
+                                                packet.begin() +
+                                                    function_code_offset_ + 1,
+                                                packet.end());
+                    it->second(payload_without_func);
                     continue;
                 }
             }
@@ -516,6 +526,15 @@ class SerialPort
 
         tcsetattr(fd_, TCSANOW, &tio);
     }
+};
+
+union FloatConverter
+{
+    float floatfmt;
+    std::vector<u_char> ucharfmt{};
+    /* data */
+
+    ~FloatConverter() { ucharfmt.clear(); }
 };
 
 #endif // __SERIALPORT_HPP__
