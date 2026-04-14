@@ -31,6 +31,9 @@ class MCUConnector : public rclcpp::Node
             std::bind(&MCUConnector::publishData, this));
         publisher_pos_ = this->create_publisher<std_msgs::msg::Int16MultiArray>(
             "/env/pos", 10);
+        publisher_clock_ =
+            this->create_publisher<std_msgs::msg::Int16MultiArray>("/env/clock",
+                                                                   10);
     }
 
     void serial_init()
@@ -41,6 +44,24 @@ class MCUConnector : public rclcpp::Node
 
         // Set transmit frame format: header 0xA0, tail 0xC0
         serial_.setTxFrameFormat({0xA0}, {0xC0});
+
+        serial_.addFunctionHandler(
+            0xB3, // 时间
+            [this](const std::vector<uint8_t> &packet)
+            {
+                RCLCPP_INFO(this->get_logger(),
+                            "Function 0xB3 packet received, len=%zu",
+                            packet.size());
+                if (packet.size() != 1)
+                {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 " Function 0xB3 packet received error");
+                    return;
+                }
+
+                std::lock_guard<std::mutex> lock(clock_data_mutex_);
+                clock_data_[0] = packet[0];
+            });
 
         serial_.addFunctionHandler(
             0xB2, // 温湿度
@@ -123,9 +144,13 @@ class MCUConnector : public rclcpp::Node
         publisher_dht11_;
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Int16MultiArray>>
         publisher_pos_;
+    std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Int16MultiArray>>
+        publisher_clock_;
     std::vector<float> dht11_data_ = std::vector<float>(2, 0);
     std::mutex dht11_data_mutex_;
+    std::mutex clock_data_mutex_;
     std::mutex position_data_mutex_;
+    std::vector<int> clock_data_ = std::vector<int>(1, 0);
     std::vector<int> last_position_data_ = std::vector<int>(7, 0);
     std::vector<int> now_position_data_ = std::vector<int>(7, 0);
     void publishData()
