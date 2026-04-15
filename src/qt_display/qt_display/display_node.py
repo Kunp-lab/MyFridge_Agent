@@ -37,7 +37,7 @@ class DisplayNode(Node, QObject):
         self.image_temp: Optional[np.ndarray] = None
         self.get_logger().info("DisplayNode started")
         self.clients_sql = self.create_client(SQLOperation, "/sql_operation")
-        self.timer = self.create_timer(0.1, self.timer_callback)
+        self.timer = self.create_timer(1, self.timer_callback)
         self.subscriptions_image = self.create_subscription(
             CompressedImage, "/image", callback=self.ImageCallback, qos_profile=10
         )
