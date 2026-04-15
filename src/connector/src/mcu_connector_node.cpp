@@ -12,8 +12,7 @@ class MCUConnector : public rclcpp::Node
 {
   public:
     MCUConnector()
-        : Node("uart_connector"), serial_("/dev/ttyACM0", 115200),
-          running_(true)
+        : Node("uart_connector"), serial_("/dev/ttyS1", 115200), running_(true)
     {
         ros2_init();
         serial_init();
