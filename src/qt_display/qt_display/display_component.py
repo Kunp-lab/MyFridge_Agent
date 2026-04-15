@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QTextEdit,
 )
-from PySide6.QtCore import Qt, QTimer, Signal, QTime, QPointF, QThread
+from PySide6.QtCore import Qt, QTimer, Signal, QTime, QPointF, QThread, QRectF
 from PySide6.QtGui import (
     QFont,
     QColor,
@@ -76,11 +76,24 @@ class StandbyScreen(QWidget):
         super().__init__()
         self.setObjectName("StandbyScreen")
         self.current_time = QTime.currentTime()
+        self.display_temp = 4.0
+        self.display_humidity = 78.0
+        self._energy_min_watt = 35.0
+        self._energy_max_watt = 95.0
+        self._energy_watt = random.uniform(self._energy_min_watt, self._energy_max_watt)
+        self._energy_target_watt = self._energy_watt
+        self._ink_phase = random.uniform(0.0, math.pi * 2.0)
+        self._energy_tick = 0
 
         # 启动每秒更新的时钟
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_time)
         self.timer.start(1000)
+
+        # 能耗模拟动画：随机目标值 + 平滑过渡，保持墨韵长度连续变化
+        self.energy_timer = QTimer(self)
+        self.energy_timer.timeout.connect(self._update_energy_simulation)
+        self.energy_timer.start(50)
 
         # 简单节气计算逻辑 (仅作演示，实际应用可接入更复杂的农历库)
         self.solar_term = self._get_solar_term()
@@ -209,6 +222,197 @@ class StandbyScreen(QWidget):
         self.current_time = QTime.currentTime()
         self.update()  # 触发重绘
 
+    def set_environment(self, temp: float, humidity: float):
+        self.display_temp = float(temp)
+        self.display_humidity = float(humidity)
+        self.update()
+
+    def _clamp_energy(self, value: float) -> float:
+        return max(self._energy_min_watt, min(self._energy_max_watt, value))
+
+    def _energy_ratio(self) -> float:
+        span = self._energy_max_watt - self._energy_min_watt
+        if span <= 0:
+            return 0.0
+        return (self._energy_watt - self._energy_min_watt) / span
+
+    def _temp_ratio(self) -> float:
+        min_temp = -2.0
+        max_temp = 10.0
+        span = max_temp - min_temp
+        if span <= 0:
+            return 0.0
+        value = (self.display_temp - min_temp) / span
+        return max(0.0, min(1.0, value))
+
+    def _humidity_ratio(self) -> float:
+        min_humidity = 35.0
+        max_humidity = 95.0
+        span = max_humidity - min_humidity
+        if span <= 0:
+            return 0.0
+        value = (self.display_humidity - min_humidity) / span
+        return max(0.0, min(1.0, value))
+
+    def _update_energy_simulation(self):
+        self._energy_tick += 1
+        self._ink_phase = (self._ink_phase + 0.065) % (math.pi * 2.0)
+
+        # 每约 4 秒重新生成一个迷你冰箱合理区间内的随机能耗目标
+        if self._energy_tick % 80 == 0:
+            self._energy_target_watt = random.uniform(
+                self._energy_min_watt, self._energy_max_watt
+            )
+
+        # 通过一阶平滑逼近目标，避免突跳
+        self._energy_watt += (self._energy_target_watt - self._energy_watt) * 0.045
+        micro = math.sin(self._energy_tick * 0.17) * 0.08
+        self._energy_watt = self._clamp_energy(self._energy_watt + micro)
+        self.update()
+
+    def _draw_energy_ink_ring(self, painter: QPainter, center: QPointF, radius: float):
+        top_angle = -math.pi / 2.0
+        gap_half = math.radians(11.0)  # 12 点方向断开约 22°
+        start_angle = top_angle  # 三条墨韵都从 12 点方向开始
+        power_ratio = self._energy_ratio()
+        temp_ratio = self._temp_ratio()
+        humidity_ratio = self._humidity_ratio()
+
+        power_text_color = QColor(108, 95, 72, 230)
+        temp_text_color = QColor(123, 82, 52, 235)  # 褐色
+        humidity_text_color = QColor(66, 110, 158, 235)
+
+        # 功耗保留原先蓝灰调，根据功耗深浅变化
+        power_ring_color = QColor(
+            int(132 + (56 - 132) * power_ratio),
+            int(146 + (72 - 146) * power_ratio),
+            int(158 + (88 - 158) * power_ratio),
+        )
+
+        def draw_metric_ring(
+            ring_radius: float,
+            ratio: float,
+            color: QColor,
+            phase_shift: float,
+            size_scale: float,
+        ):
+            arc_ratio = 0.50 + ratio * 0.25
+            span_angle = (math.pi * 2.0) * arc_ratio
+            steps = max(120, int(300 * arc_ratio))
+            alpha_low = 44 + int(32 * ratio)
+            alpha_high = 148 + int(72 * ratio)
+
+            painter.save()
+            painter.setPen(Qt.PenStyle.NoPen)
+            for i in range(steps):
+                t = i / float(max(steps - 1, 1))
+                theta = start_angle + t * span_angle
+                diff_top = abs(
+                    math.atan2(
+                        math.sin(theta - top_angle),
+                        math.cos(theta - top_angle),
+                    )
+                )
+                if diff_top < gap_half:
+                    continue
+
+                wave = math.sin(theta * 3.2 + self._ink_phase + phase_shift) * 2.0
+                ripple = math.cos(theta * 6.8 - self._ink_phase * 0.65 + phase_shift) * 1.0
+                rr = ring_radius + wave + ripple
+
+                pressure = 0.35 + 0.65 * math.sin(math.pi * t)
+                size = (
+                    3.6 + 2.8 * (0.5 + 0.5 * math.sin(theta * 4.7 + self._ink_phase + phase_shift))
+                ) * pressure * size_scale
+
+                x = center.x() + rr * math.cos(theta)
+                y = center.y() + rr * math.sin(theta)
+                alpha = int(
+                    (
+                        alpha_low
+                        + (alpha_high - alpha_low)
+                        * (0.5 + 0.5 * math.cos(theta * 2.1 + self._ink_phase + phase_shift))
+                    )
+                    * pressure
+                )
+                alpha = max(12, min(220, alpha))
+                painter.setBrush(QColor(color.red(), color.green(), color.blue(), alpha))
+                painter.drawEllipse(QPointF(x, y), size, size * 0.92)
+
+                if i % 24 == 0 and pressure > 0.44:
+                    splash_alpha = max(14, min(170, int(alpha * 0.74)))
+                    painter.setBrush(
+                        QColor(
+                            max(0, color.red() - 14),
+                            max(0, color.green() - 14),
+                            max(0, color.blue() - 14),
+                            splash_alpha,
+                        )
+                    )
+                    sx = x + math.sin(theta * 8.8 + self._ink_phase + phase_shift) * 4.8
+                    sy = y + math.cos(theta * 8.1 - self._ink_phase - phase_shift) * 4.8
+                    painter.drawEllipse(QPointF(sx, sy), size * 0.50, size * 0.50)
+            painter.restore()
+
+        # 三条墨韵圈：都从 12 点起步、同向
+        draw_metric_ring(radius + 18, power_ratio, power_ring_color, 0.0, 1.30)
+        draw_metric_ring(radius + 31, temp_ratio, temp_text_color, 1.1, 1.18)
+        draw_metric_ring(radius + 44, humidity_ratio, humidity_text_color, 2.1, 1.12)
+
+        # 在 12 点断口区域展示英文功耗
+        label_text = f"POWER {self._energy_watt:.0f}W"
+        painter.setPen(power_text_color)
+        painter.setFont(QFont("Microsoft YaHei", max(11, int(radius * 0.044)), QFont.Weight.DemiBold))
+        label_w = int(radius * 0.78)
+        label_h = int(max(24, radius * 0.12))
+        label_x = int(center.x() - label_w / 2)
+        label_y = int(center.y() - radius - 40)
+        painter.drawText(
+            label_x,
+            label_y,
+            label_w,
+            label_h,
+            Qt.AlignmentFlag.AlignCenter,
+            label_text,
+        )
+
+        # 以同样方式显示温湿度：温度褐色、湿度蓝色
+        sensor_font = QFont(
+            "Microsoft YaHei",
+            max(10, int(radius * 0.035)),
+            QFont.Weight.DemiBold,
+        )
+        painter.setFont(sensor_font)
+        sensor_w = int(radius * 0.56)
+        sensor_h = int(max(22, radius * 0.1))
+        sensor_y = int(center.y() - radius - 8)
+
+        temp_text = f"TEMP {self.display_temp:.1f}°C"
+        temp_cx = center.x() - radius * 0.48
+        temp_x = int(temp_cx - sensor_w / 2)
+        painter.setPen(temp_text_color)
+        painter.drawText(
+            temp_x,
+            sensor_y,
+            sensor_w,
+            sensor_h,
+            Qt.AlignmentFlag.AlignCenter,
+            temp_text,
+        )
+
+        humidity_text = f"HUMID {self.display_humidity:.1f}%"
+        hum_cx = center.x() + radius * 0.48
+        hum_x = int(hum_cx - sensor_w / 2)
+        painter.setPen(humidity_text_color)
+        painter.drawText(
+            hum_x,
+            sensor_y,
+            sensor_w,
+            sensor_h,
+            Qt.AlignmentFlag.AlignCenter,
+            humidity_text,
+        )
+
     def paintEvent(self, event):
         """核心：用代码画出水墨山水表盘"""
         painter = QPainter(self)
@@ -238,6 +442,9 @@ class StandbyScreen(QWidget):
         # 2. 绘制中央水墨圆盘
         center = QPointF(width / 2, height / 2)
         radius = min(width, height) * 0.38
+
+        # 2.1 绘制时钟外圈蓝灰墨韵，弧长由能耗值驱动
+        self._draw_energy_ink_ring(painter, center, radius + 22)
 
         # 黄铜外边框
         pen = QPen(QColor("#9E7A45"), 12)
@@ -550,16 +757,59 @@ class FoodDetailDialog(QDialog):
         )
 
 
+class LoadingSpinner(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._angle = 0
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self._on_timeout)
+        self.setFixedSize(30, 30)
+        self.hide()
+
+    def _on_timeout(self):
+        self._angle = (self._angle + 24) % 360
+        self.update()
+
+    def start(self):
+        if not self._timer.isActive():
+            self._timer.start(50)
+        self.show()
+        self.update()
+
+    def stop(self):
+        self._timer.stop()
+        self.hide()
+
+    def paintEvent(self, event):
+        if not self.isVisible():
+            return
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        rect = QRectF(4, 4, self.width() - 8, self.height() - 8)
+        track_pen = QPen(QColor(120, 100, 76, 70), 3.0)
+        track_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(track_pen)
+        painter.drawArc(rect, 0, 360 * 16)
+
+        active_pen = QPen(QColor(158, 124, 84, 230), 3.6)
+        active_pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+        painter.setPen(active_pen)
+        painter.drawArc(rect, int((90 - self._angle) * 16), int(-120 * 16))
+
+
 class RecommendDialog(QDialog):
-    def __init__(self, content: str, parent=None):
+    exit_requested = Signal()
+
+    def __init__(self, content: str, parent=None, is_loading: bool = False):
         super().__init__(parent)
         self.setWindowTitle("推荐")
         self.resize(620, 520)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self._init_ui(content)
+        self._init_ui(content, is_loading)
 
-    def _init_ui(self, content: str):
+    def _init_ui(self, content: str, is_loading: bool):
         main_frame = QFrame(self)
         main_frame.setGeometry(0, 0, 620, 520)
         main_frame.setObjectName("RecommendDialogFrame")
@@ -582,10 +832,17 @@ class RecommendDialog(QDialog):
         header_layout.addWidget(close_btn)
         layout.addLayout(header_layout)
 
-        hint_label = QLabel("已为你整理当前库存对应的营养概括与推荐食谱")
-        hint_label.setObjectName("RecommendHintLabel")
-        hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(hint_label)
+        self.hint_label = QLabel("已为你整理当前库存对应的营养概括与推荐食谱")
+        self.hint_label.setObjectName("RecommendHintLabel")
+        self.hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.hint_label)
+
+        spinner_row = QHBoxLayout()
+        spinner_row.addStretch()
+        self.loading_spinner = LoadingSpinner()
+        spinner_row.addWidget(self.loading_spinner)
+        spinner_row.addStretch()
+        layout.addLayout(spinner_row)
 
         self.content_edit = QTextEdit()
         self.content_edit.setObjectName("RecommendContentEdit")
@@ -595,6 +852,13 @@ class RecommendDialog(QDialog):
 
         footer_layout = QHBoxLayout()
         footer_layout.addStretch()
+
+        exit_btn = QPushButton("退出")
+        exit_btn.setObjectName("RecommendExitBtn")
+        exit_btn.setFixedSize(120, 42)
+        exit_btn.clicked.connect(self._on_exit_clicked)
+        footer_layout.addWidget(exit_btn)
+        footer_layout.addSpacing(12)
 
         confirm_btn = QPushButton("我知道了")
         confirm_btn.setObjectName("RecommendConfirmBtn")
@@ -658,11 +922,45 @@ class RecommendDialog(QDialog):
                 border-left-color: #2F190D;
                 background-color: #8F6A42;
             }
+            QPushButton#RecommendExitBtn {
+                background-color: #8F4B3E;
+                color: #F3E2C1;
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 16px;
+                font-weight: bold;
+                border: 4px solid #4A2B18;
+                border-top-color: #B66C5E;
+                border-left-color: #B66C5E;
+            }
+            QPushButton#RecommendExitBtn:pressed {
+                border-top-color: #2F190D;
+                border-left-color: #2F190D;
+                background-color: #6E3A31;
+            }
         """
         )
 
+        self.set_loading(is_loading)
+
+    def set_content(self, content: str):
+        self.content_edit.setPlainText(content)
+
+    def _on_exit_clicked(self):
+        self.exit_requested.emit()
+        self.accept()
+
+    def set_loading(self, is_loading: bool):
+        if is_loading:
+            self.hint_label.setText("AI 正在推理中，请稍等...")
+            self.loading_spinner.start()
+        else:
+            self.hint_label.setText("已为你整理当前库存对应的营养概括与推荐食谱")
+            self.loading_spinner.stop()
+
 
 class FoodRecognizeDialog(QDialog):
+    exit_requested = Signal()
+
     def __init__(self, content: str, parent=None):
         super().__init__(parent)
         self.setWindowTitle("食材识别结果")
@@ -681,7 +979,7 @@ class FoodRecognizeDialog(QDialog):
         layout.setSpacing(12)
 
         header_layout = QHBoxLayout()
-        title_label = QLabel("❖ 食 材 识 别 完 成 ❖")
+        title_label = QLabel("❖ 食 材 识 别 ❖")
         title_label.setObjectName("FoodRecognizeDialogTitle")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
@@ -694,7 +992,7 @@ class FoodRecognizeDialog(QDialog):
         header_layout.addWidget(close_btn)
         layout.addLayout(header_layout)
 
-        hint_label = QLabel("以下为本次识别到的食材信息与推荐放置位置")
+        hint_label = QLabel("以下为本次识别进度与推荐放置位置")
         hint_label.setObjectName("FoodRecognizeHintLabel")
         hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(hint_label)
@@ -707,6 +1005,13 @@ class FoodRecognizeDialog(QDialog):
 
         footer_layout = QHBoxLayout()
         footer_layout.addStretch()
+
+        exit_btn = QPushButton("退出")
+        exit_btn.setObjectName("FoodRecognizeExitBtn")
+        exit_btn.setFixedSize(120, 42)
+        exit_btn.clicked.connect(self._on_exit_clicked)
+        footer_layout.addWidget(exit_btn)
+        footer_layout.addSpacing(12)
 
         confirm_btn = QPushButton("知道了")
         confirm_btn.setObjectName("FoodRecognizeConfirmBtn")
@@ -770,20 +1075,44 @@ class FoodRecognizeDialog(QDialog):
                 border-left-color: #2F190D;
                 background-color: #8F6A42;
             }
+            QPushButton#FoodRecognizeExitBtn {
+                background-color: #8F4B3E;
+                color: #F3E2C1;
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 16px;
+                font-weight: bold;
+                border: 4px solid #4A2B18;
+                border-top-color: #B66C5E;
+                border-left-color: #B66C5E;
+            }
+            QPushButton#FoodRecognizeExitBtn:pressed {
+                border-top-color: #2F190D;
+                border-left-color: #2F190D;
+                background-color: #6E3A31;
+            }
         """
         )
 
+    def set_content(self, content: str):
+        self.content_edit.setPlainText(content)
+
+    def _on_exit_clicked(self):
+        self.exit_requested.emit()
+        self.accept()
+
 
 class TongueHealthDialog(QDialog):
-    def __init__(self, content: str, parent=None):
+    exit_requested = Signal()
+
+    def __init__(self, content: str, parent=None, is_loading: bool = False):
         super().__init__(parent)
         self.setWindowTitle("健康检测结果")
         self.resize(560, 420)
         self.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self._init_ui(content)
+        self._init_ui(content, is_loading)
 
-    def _init_ui(self, content: str):
+    def _init_ui(self, content: str, is_loading: bool):
         main_frame = QFrame(self)
         main_frame.setGeometry(0, 0, 560, 420)
         main_frame.setObjectName("TongueHealthDialogFrame")
@@ -806,10 +1135,17 @@ class TongueHealthDialog(QDialog):
         header_layout.addWidget(close_btn)
         layout.addLayout(header_layout)
 
-        hint_label = QLabel("以下为本次舌诊检测分析结果（仅供生活方式参考）")
-        hint_label.setObjectName("TongueHealthHintLabel")
-        hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(hint_label)
+        self.hint_label = QLabel("以下为本次舌诊检测分析结果（仅供生活方式参考）")
+        self.hint_label.setObjectName("TongueHealthHintLabel")
+        self.hint_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.hint_label)
+
+        spinner_row = QHBoxLayout()
+        spinner_row.addStretch()
+        self.loading_spinner = LoadingSpinner()
+        spinner_row.addWidget(self.loading_spinner)
+        spinner_row.addStretch()
+        layout.addLayout(spinner_row)
 
         self.content_edit = QTextEdit()
         self.content_edit.setObjectName("TongueHealthContentEdit")
@@ -819,6 +1155,13 @@ class TongueHealthDialog(QDialog):
 
         footer_layout = QHBoxLayout()
         footer_layout.addStretch()
+
+        exit_btn = QPushButton("退出")
+        exit_btn.setObjectName("TongueHealthExitBtn")
+        exit_btn.setFixedSize(120, 42)
+        exit_btn.clicked.connect(self._on_exit_clicked)
+        footer_layout.addWidget(exit_btn)
+        footer_layout.addSpacing(12)
 
         confirm_btn = QPushButton("知道了")
         confirm_btn.setObjectName("TongueHealthConfirmBtn")
@@ -882,8 +1225,40 @@ class TongueHealthDialog(QDialog):
                 border-left-color: #2F190D;
                 background-color: #8F6A42;
             }
+            QPushButton#TongueHealthExitBtn {
+                background-color: #8F4B3E;
+                color: #F3E2C1;
+                font-family: "Microsoft YaHei", "KaiTi";
+                font-size: 16px;
+                font-weight: bold;
+                border: 4px solid #4A2B18;
+                border-top-color: #B66C5E;
+                border-left-color: #B66C5E;
+            }
+            QPushButton#TongueHealthExitBtn:pressed {
+                border-top-color: #2F190D;
+                border-left-color: #2F190D;
+                background-color: #6E3A31;
+            }
         """
         )
+
+        self.set_loading(is_loading)
+
+    def set_content(self, content: str):
+        self.content_edit.setPlainText(content)
+
+    def _on_exit_clicked(self):
+        self.exit_requested.emit()
+        self.accept()
+
+    def set_loading(self, is_loading: bool):
+        if is_loading:
+            self.hint_label.setText("AI 正在推理中，请稍等...")
+            self.loading_spinner.start()
+        else:
+            self.hint_label.setText("以下为本次舌诊检测分析结果（仅供生活方式参考）")
+            self.loading_spinner.stop()
 
 
 # ==========================================
@@ -1035,26 +1410,37 @@ class FoodCard(QFrame):
         precautions: list,
         image_path: str,
     ):
+        display_name = name.strip() if isinstance(name, str) else ""
+        has_food = bool(display_name)
+        if not has_food:
+            display_name = "虚位以待"
+
+        normalized_days_left = days_left if isinstance(days_left, int) else -1
+
         self.food_data = {
-            "name": name,
-            "days_left": days_left,
+            "name": display_name,
+            "days_left": normalized_days_left,
             "features": features,
             "precautions": precautions,
             "image_path": image_path,
         }
-        self.name_label.setText(name)
+        self.name_label.setText(display_name)
 
-        if days_left < 0:
+        if not has_food:
             self.expire_label.setText("—")
             self.expire_label.setStyleSheet("color: #90857A; border-color: #5D5246;")
-        elif days_left <= 3:
-            self.expire_label.setText(f"仅剩 {days_left} 日")
+        elif normalized_days_left <= 0:
+            self.expire_label.setText("已经过期")
+            self.expire_label.setStyleSheet("color: #D36B5D; border-color: #A54B3D;")
+        elif normalized_days_left <= 3:
+            self.expire_label.setText(f"仅剩 {normalized_days_left} 日")
             self.expire_label.setStyleSheet("color: #F0B766; border-color: #C88A3C;")
         else:
-            self.expire_label.setText(f"尚余 {days_left} 日")
+            self.expire_label.setText(f"尚余 {normalized_days_left} 日")
             self.expire_label.setStyleSheet("color: #B7C8B3; border-color: #6E7A68;")
 
-        self._generate_brush_circle(name, days_left)
+        ring_days_left = -1 if not has_food else max(0, normalized_days_left)
+        self._generate_brush_circle(display_name, ring_days_left)
         self.update()
 
     def paintEvent(self, arg__1):
@@ -1082,6 +1468,12 @@ class SmartFridgeUI(QMainWindow):
         self.setWindowTitle("冰鉴 · 珍馐录")
         self.resize(800, 1024)  # 稍微调大一点以便容纳新按钮
         self.food_grids = []
+        self.food_recognition_dialog = None
+        self.recommend_dialog = None
+        self.tongue_health_dialog = None
+        self.food_recognition_loading = False
+        self.recommend_loading = False
+        self.tongue_health_loading = False
         self.mock_temp = 4.0
         self.mock_humidity = 78.0
 
@@ -1097,9 +1489,9 @@ class SmartFridgeUI(QMainWindow):
         self._apply_global_style()
         self._init_mock_environment_timer()
 
-        # 默认显示待机页面 (索引 0)
-        self.stacked_widget.setCurrentIndex(0)
         self._start_ros2_thread(node=node)
+        # 默认显示待机页面 (索引 0)，并通知电机开始运动
+        self._switch_to_page(0, force_standby_publish=True)
         self.showFullScreen()
 
     def _init_standby_page(self):
@@ -1107,7 +1499,7 @@ class SmartFridgeUI(QMainWindow):
         self.standby_page = StandbyScreen()
         # 绑定点击事件，切换到主页面 (索引 1)
         self.standby_page.clicked.connect(
-            lambda: self.stacked_widget.setCurrentIndex(1)
+            lambda: self._switch_to_page(1)
         )
         self.stacked_widget.addWidget(self.standby_page)
 
@@ -1145,10 +1537,10 @@ class SmartFridgeUI(QMainWindow):
         self.return_btn.setFixedWidth(BTN_WIDTH)
         self.return_btn.setFixedHeight(BTN_HEIGHT)
         self.return_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.return_btn.clicked.connect(lambda: self.stacked_widget.setCurrentIndex(0))
+        self.return_btn.clicked.connect(lambda: self._switch_to_page(0))
 
         # 新增：“鉴物”按钮
-        self.vision_nav_btn = QPushButton("▶ 鉴物")
+        self.vision_nav_btn = QPushButton("▶ 功能")
         self.vision_nav_btn.setObjectName(
             "VisionNavBtn"
         )  # 使用不同的标识符以便单独贴样式
@@ -1157,7 +1549,7 @@ class SmartFridgeUI(QMainWindow):
         self.vision_nav_btn.setFixedHeight(BTN_HEIGHT)
         self.vision_nav_btn.setFixedWidth(BTN_WIDTH)
         self.vision_nav_btn.clicked.connect(
-            lambda: self.stacked_widget.setCurrentIndex(2)
+            lambda: self._switch_to_page(2)
         )
 
         nav_btn_layout.addWidget(self.exit_btn)
@@ -1185,7 +1577,7 @@ class SmartFridgeUI(QMainWindow):
         status_layout = QHBoxLayout(status_frame)
         status_layout.setContentsMargins(20, 0, 20, 0)
 
-        self.status_label = QLabel("温度: -- °C   湿度: -- %   ❄ 鲜香守护 ❄")
+        self.status_label = QLabel("")
         self.status_label.setObjectName("StatusText")
         self.status_label.setAlignment(
             Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
@@ -1218,7 +1610,7 @@ class SmartFridgeUI(QMainWindow):
         # 绑定页面内的信号
         # 返回主界面 (索引 1)
         self.vision_page.back_clicked.connect(
-            lambda: self.stacked_widget.setCurrentIndex(1)
+            lambda: self._switch_to_page(1)
         )
         # 抓拍按钮事件 (暂时只打印日志，后续可以对接摄像头逻辑)
         self.vision_page.capture_clicked.connect(self._handle_manual_capture)
@@ -1227,37 +1619,148 @@ class SmartFridgeUI(QMainWindow):
 
         self.stacked_widget.addWidget(self.vision_page)
 
+    def _publish_qdriver_control(self, enabled: bool):
+        if not hasattr(self, "ros_worker") or self.ros_worker is None:
+            return
+        if not getattr(self.ros_worker, "node", None):
+            return
+        self.ros_worker.node.PublishQdriverControl(enabled)
+
+    def _switch_to_page(self, page_index: int, force_standby_publish: bool = False):
+        prev_index = self.stacked_widget.currentIndex()
+        if prev_index == 0 and page_index != 0:
+            self._publish_qdriver_control(False)
+
+        self.stacked_widget.setCurrentIndex(page_index)
+
+        if page_index == 0 and (force_standby_publish or prev_index != 0):
+            self._publish_qdriver_control(True)
+
     def _handle_manual_capture(self):
-        self.vision_page.set_result_text("正在识别中......")
+        self.vision_page.set_result_text("已接收图像，正在准备识别......")
         self.ros_worker.node.reason_flag.emit()
         # 后续你可以这里调用摄像头拍照并更新 VisionPage 的图片
 
     def _handle_tongueai(self):
-        self.vision_page.set_result_text("正在发送舌诊图片，等待健康检测结果......")
+        self.vision_page.set_result_text("AI 正在推理中，请稍等......")
+        self._show_tongue_health_dialog("AI 正在推理中，请稍等...", loading=True)
         self.ros_worker.node.StartTongueDiagnosis()
 
     def _handle_season(self):
-        self.vision_page.set_result_text("正在生成推荐食谱......")
+        self.vision_page.set_result_text("AI 正在推理中，请稍等......")
+        self._show_recommend_dialog("AI 正在推理中，请稍等...", loading=True)
         self.ros_worker.node.StartRecommend()
 
-    def _show_recommend_dialog(self, text: str):
-        self.vision_page.set_result_text("推荐结果已生成，请查看弹窗。")
-        dialog = RecommendDialog(text, self)
-        dialog.exec()
+    def _show_recommend_dialog(self, text: str, loading: bool = False):
+        self.recommend_loading = loading
+        if loading:
+            self.vision_page.set_result_text("AI 正在推理中，请稍等......")
+        elif "失败" in text or "暂未生成" in text:
+            self.vision_page.set_result_text(text)
+        else:
+            self.vision_page.set_result_text("推荐结果已生成，请查看弹窗。")
+
+        if self.recommend_dialog is None:
+            self.recommend_dialog = RecommendDialog(text, self, is_loading=loading)
+            self.recommend_dialog.exit_requested.connect(self._on_recommend_exit_requested)
+            self.recommend_dialog.finished.connect(self._on_recommend_dialog_closed)
+            self.recommend_dialog.show()
+        else:
+            self.recommend_dialog.set_content(text)
+            self.recommend_dialog.set_loading(loading)
+            if not self.recommend_dialog.isVisible():
+                self.recommend_dialog.show()
+
+        self.recommend_dialog.raise_()
+        self.recommend_dialog.activateWindow()
+
+    def _on_recommend_dialog_closed(self, _result: int):
+        self.recommend_dialog = None
+        self.recommend_loading = False
+
+    def _on_recommend_exit_requested(self):
+        if self.recommend_loading and self.ros_worker and self.ros_worker.node:
+            self.ros_worker.node.CancelRecommend()
+            self.vision_page.set_result_text("已取消推荐等待，不再获取本次 AI 结果。")
+        self.recommend_loading = False
 
     def _show_food_recognition_dialog(self, text: str):
-        self.vision_page.set_result_text("识别完成，请查看提示框。")
-        dialog = FoodRecognizeDialog(text, self)
-        dialog.exec()
+        self.food_recognition_loading = "AI 正在推理中，请稍等" in text
+        if self.food_recognition_loading:
+            self.vision_page.set_result_text("AI 正在推理中，请稍等......")
+        else:
+            self.vision_page.set_result_text("识别完成，请查看提示框。")
 
-    def _show_tongue_health_dialog(self, text: str):
-        if "正在等待健康检测结果" in text or "舌诊图片已发送" in text:
+        if self.food_recognition_dialog is None:
+            self.food_recognition_dialog = FoodRecognizeDialog(text, self)
+            self.food_recognition_dialog.exit_requested.connect(
+                self._on_food_recognition_exit_requested
+            )
+            self.food_recognition_dialog.finished.connect(
+                self._on_food_recognition_dialog_closed
+            )
+            self.food_recognition_dialog.show()
+        else:
+            self.food_recognition_dialog.set_content(text)
+            if not self.food_recognition_dialog.isVisible():
+                self.food_recognition_dialog.show()
+
+        self.food_recognition_dialog.raise_()
+        self.food_recognition_dialog.activateWindow()
+
+    def _on_food_recognition_dialog_closed(self, _result: int):
+        self.food_recognition_dialog = None
+        self.food_recognition_loading = False
+
+    def _on_food_recognition_exit_requested(self):
+        if self.food_recognition_loading and self.ros_worker and self.ros_worker.node:
+            self.ros_worker.node.CancelReasoning()
+            self.vision_page.set_result_text("已取消识别等待，不再获取本次 AI 结果。")
+        self.food_recognition_loading = False
+
+    def _show_tongue_health_dialog(self, text: str, loading: bool = False):
+        if not loading and (
+            "正在等待健康检测结果" in text or "舌诊图片已发送" in text
+        ):
+            loading = True
+
+        self.tongue_health_loading = loading
+        if loading:
+            self.vision_page.set_result_text("AI 正在推理中，请稍等......")
+        elif "失败" in text or "暂无可用于舌诊" in text:
             self.vision_page.set_result_text(text)
-            return
+        else:
+            self.vision_page.set_result_text("健康检测已完成，请查看弹窗。")
 
-        self.vision_page.set_result_text("健康检测已完成，请查看弹窗。")
-        dialog = TongueHealthDialog(text, self)
-        dialog.exec()
+        if self.tongue_health_dialog is None:
+            self.tongue_health_dialog = TongueHealthDialog(
+                text, self, is_loading=loading
+            )
+            self.tongue_health_dialog.exit_requested.connect(
+                self._on_tongue_health_exit_requested
+            )
+            self.tongue_health_dialog.finished.connect(
+                self._on_tongue_health_dialog_closed
+            )
+            self.tongue_health_dialog.show()
+        else:
+            self.tongue_health_dialog.set_content(text)
+            self.tongue_health_dialog.set_loading(loading)
+            if not self.tongue_health_dialog.isVisible():
+                self.tongue_health_dialog.show()
+
+        self.tongue_health_dialog.raise_()
+        self.tongue_health_dialog.activateWindow()
+
+    def _on_tongue_health_dialog_closed(self, _result: int):
+        self.tongue_health_dialog = None
+        self.tongue_health_loading = False
+
+    def _on_tongue_health_exit_requested(self):
+        if self.tongue_health_loading and self.ros_worker and self.ros_worker.node:
+            self.ros_worker.node.CancelTongueDiagnosis()
+            self.vision_page.set_result_text("已取消健康检测等待，不再获取本次 AI 结果。")
+        self.tongue_health_loading = False
 
     def _apply_global_style(self):
         # (已更新样式表：增加新导航按钮的样式)
@@ -1327,25 +1830,36 @@ class SmartFridgeUI(QMainWindow):
 
     def _init_mock_environment_timer(self):
         """初始化温湿度随机跳动展示（用于 UI 演示）"""
-        self.env_timer = QTimer(self)
-        self.env_timer.timeout.connect(self._update_random_environment)
-        self.env_timer.start(1000)
-        self._update_random_environment()
+        # 温度每 5 秒刷新，且存在“本次不动”的概率
+        self.temp_timer = QTimer(self)
+        self.temp_timer.timeout.connect(self._update_random_temperature)
+        self.temp_timer.start(5000)
 
-    def _update_random_environment(self):
-        """每秒小幅随机波动，模拟冰箱环境传感器数据"""
-        self.mock_temp += random.uniform(-0.35, 0.35)
-        self.mock_humidity += random.uniform(-1.8, 1.8)
+        # 湿度每 7 秒刷新
+        self.humidity_timer = QTimer(self)
+        self.humidity_timer.timeout.connect(self._update_random_humidity)
+        self.humidity_timer.start(7000)
 
-        self.mock_temp = max(-2.0, min(10.0, self.mock_temp))
+        # 启动后先显示一次初始值
+        self.set_environment(self.mock_temp, self.mock_humidity)
+
+    def _update_random_temperature(self):
+        """每 5 秒更新一次温度，单次变化在 ±0.3 内，且有概率不动"""
+        no_move_probability = 0.35
+        if random.random() >= no_move_probability:
+            self.mock_temp += random.uniform(-0.3, 0.3)
+            self.mock_temp = max(-2.0, min(10.0, self.mock_temp))
+        self.set_environment(self.mock_temp, self.mock_humidity)
+
+    def _update_random_humidity(self):
+        """每 7 秒更新一次湿度，单次变化在 ±0.2 内"""
+        self.mock_humidity += random.uniform(-0.2, 0.2)
         self.mock_humidity = max(35.0, min(95.0, self.mock_humidity))
-
         self.set_environment(self.mock_temp, self.mock_humidity)
 
     def set_environment(self, temp: float, humidity: float):
-        self.status_label.setText(
-            f"温度: {temp:.1f} °C   湿度: {humidity:.1f} %   ❄ 鲜香守护 ❄"
-        )
+        self.status_label.setText("")
+        self.standby_page.set_environment(temp, humidity)
 
     def set_food_item(
         self,
@@ -1408,6 +1922,7 @@ class SmartFridgeUI(QMainWindow):
 
     def closeEvent(self, event):
         """窗口关闭时优雅停止 ROS2 线程"""
+        self._publish_qdriver_control(False)
         if self.ros_worker:
             self.ros_worker.stop()
         super().closeEvent(event)

@@ -50,17 +50,27 @@ class MCUConnector : public rclcpp::Node
             [this](const std::vector<uint8_t> &packet)
             {
                 RCLCPP_INFO(this->get_logger(),
-                            "Function 0xB3 packet received, len=%zu",
+                            "Function Code 0xB3 packet received, len=%zu",
                             packet.size());
                 if (packet.size() != 1)
                 {
                     RCLCPP_ERROR(this->get_logger(),
-                                 " Function 0xB3 packet received error");
+                                 " Function Code 0xB3 packet received error");
                     return;
                 }
 
                 std::lock_guard<std::mutex> lock(clock_data_mutex_);
-                clock_data_[0] = packet[0];
+                clock_data_[1] = clock_data_[0]; // set old
+                clock_data_[0] = packet[0];      // set new
+                std_msgs::msg::Int16MultiArray msg;
+                msg.data.resize(1);
+                auto dist = clock_data_[1] - clock_data_[0];
+                if (std::abs(dist) > 200)
+                {
+                    clock_data_[1] = clock_data_[0];
+                }
+                msg.data[0] = clock_data_[1] - clock_data_[0];
+                this->publisher_clock_->publish(msg);
             });
 
         serial_.addFunctionHandler(
@@ -68,12 +78,12 @@ class MCUConnector : public rclcpp::Node
             [this](const std::vector<uint8_t> &packet)
             {
                 RCLCPP_INFO(this->get_logger(),
-                            "Function 0xB2 packet received, len=%zu",
+                            "Function Code 0xB2 packet received, len=%zu",
                             packet.size());
                 if (packet.size() != 8)
                 {
                     RCLCPP_ERROR(this->get_logger(),
-                                 " Function 0xB2 packet received error");
+                                 " Function Code 0xB2 packet received error");
                     return;
                 }
 
@@ -94,12 +104,12 @@ class MCUConnector : public rclcpp::Node
             [this](const std::vector<uint8_t> &packet)
             {
                 RCLCPP_INFO(this->get_logger(),
-                            "Function 0xB1 packet received, len=%zu",
+                            "Function Code 0xB1 packet received, len=%zu",
                             packet.size());
                 if (packet.size() != 7)
                 {
                     RCLCPP_ERROR(this->get_logger(),
-                                 " Function 0xB1 packet received error");
+                                 " Function Code 0xB1 packet received error");
                     return;
                 }
                 std::lock_guard<std::mutex> lock(position_data_mutex_);
@@ -112,7 +122,7 @@ class MCUConnector : public rclcpp::Node
             [this](const std::vector<uint8_t> &packet)
             {
                 RCLCPP_INFO(this->get_logger(),
-                            "Unknown function packet received, len=%zu",
+                            "Unknown Function Code packet received, len=%zu",
                             packet.size());
                 return;
                 std::lock_guard<std::mutex> lock(data_mutex_);
@@ -150,7 +160,7 @@ class MCUConnector : public rclcpp::Node
     std::mutex dht11_data_mutex_;
     std::mutex clock_data_mutex_;
     std::mutex position_data_mutex_;
-    std::vector<int> clock_data_ = std::vector<int>(1, 0);
+    std::vector<int> clock_data_ = std::vector<int>(2, 0);
     std::vector<int> last_position_data_ = std::vector<int>(7, 0);
     std::vector<int> now_position_data_ = std::vector<int>(7, 0);
     void publishData()
@@ -181,6 +191,7 @@ class MCUConnector : public rclcpp::Node
         std::copy(dht11_data_.begin(), dht11_data_.end(), msg.data.begin());
         publisher_dht11_->publish(msg);
 
+        // send data of position
         std::vector<int> append_list{};
         std::vector<int> delete_list{};
 

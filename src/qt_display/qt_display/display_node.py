@@ -7,7 +7,7 @@ import rclpy
 import numpy as np
 from PySide6.QtCore import QThread, Signal, QObject, Slot
 from sensor_msgs.msg import CompressedImage, Image
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 from cv_bridge import CvBridge
 import cv2
 import os
@@ -37,7 +37,7 @@ class DisplayNode(Node, QObject):
         self.image_temp: Optional[np.ndarray] = None
         self.get_logger().info("DisplayNode started")
         self.clients_sql = self.create_client(SQLOperation, "/sql_operation")
-        self.timer = self.create_timer(3, self.timer_callback)
+        self.timer = self.create_timer(0.1, self.timer_callback)
         self.subscriptions_image = self.create_subscription(
             CompressedImage, "/image", callback=self.ImageCallback, qos_profile=10
         )
@@ -46,6 +46,9 @@ class DisplayNode(Node, QObject):
         )
         self.publishers_vlm_text_ = self.create_publisher(
             String, "/prompt_text", qos_profile=10
+        )
+        self.publishers_qdriver_control_ = self.create_publisher(
+            Bool, "Qdriver/control", qos_profile=10
         )
         self.ingredient = [["", -1, [], []] for _ in range(9)]
         self.LLM_server = OpenAI(
@@ -56,18 +59,32 @@ class DisplayNode(Node, QObject):
         self.init_mqtt_connect()
         self.init_threads()
 
+    @Slot(bool)
+    def PublishQdriverControl(self, enabled: bool):
+        msg = Bool()
+        msg.data = bool(enabled)
+        self.publishers_qdriver_control_.publish(msg)
+        self.get_logger().info(
+            f"已发布 Qdriver/control: {'true' if msg.data else 'false'}"
+        )
+
     def init_threads(self):
         self._image_lock = threading.Lock()
         self._reasoning_lock = threading.Lock()
         self._reasoning_in_progress = False
         self._reasoning_thread = None
+        self._reasoning_epoch = 0
 
         self._recommend_lock = threading.Lock()
         self._recommend_thread = None
         self._recommend_in_progress = False
+        self._recommend_epoch = 0
         self._tongue_lock = threading.Lock()
         self._tongue_thread = None
         self._tongue_in_progress = False
+        self._tongue_epoch = 0
+        self._tongue_waiting_result = False
+        self._tongue_ignore_result_count = 0
         self._location_lock = threading.Lock()
         self._location_cursor = 1
 
@@ -162,10 +179,30 @@ class DisplayNode(Node, QObject):
                 self.get_logger().info("识别任务仍在进行中，忽略重复触发")
                 return
             self._reasoning_in_progress = True
+            self._reasoning_epoch += 1
+            task_epoch = self._reasoning_epoch
+
+        try:
+            location = self._allocate_location()
+        except Exception as e:
+            with self._reasoning_lock:
+                if self._reasoning_epoch == task_epoch:
+                    self._reasoning_in_progress = False
+            err_text = f"无法为本次识别分配位置：{e}"
+            self.get_logger().error(err_text)
+            self.food_recognition_updated.emit(err_text)
+            return
+
+        if not self._is_reasoning_active_epoch(task_epoch):
+            return
+
+        self.food_recognition_updated.emit(
+            self._format_food_recognition_pending_text(location)
+        )
 
         self._reasoning_thread = threading.Thread(
             target=self._run_reasoning_task,
-            args=(image_snapshot,),
+            args=(image_snapshot, location, task_epoch),
             daemon=True,
             name="food-reasoning",
         )
@@ -178,9 +215,12 @@ class DisplayNode(Node, QObject):
                 self.get_logger().info("推荐任务仍在进行中，忽略重复触发")
                 return
             self._recommend_in_progress = True
+            self._recommend_epoch += 1
+            task_epoch = self._recommend_epoch
 
         self._recommend_thread = threading.Thread(
             target=self._run_recommend_task,
+            args=(task_epoch,),
             daemon=True,
             name="food-recommend",
         )
@@ -200,18 +240,66 @@ class DisplayNode(Node, QObject):
                 self.get_logger().info("舌诊任务仍在进行中，忽略重复触发")
                 return
             self._tongue_in_progress = True
+            self._tongue_waiting_result = False
+            self._tongue_epoch += 1
+            task_epoch = self._tongue_epoch
 
         self._tongue_thread = threading.Thread(
             target=self._run_tongue_task,
-            args=(image_snapshot,),
+            args=(image_snapshot, task_epoch),
             daemon=True,
             name="tongue-diagnosis",
         )
         self._tongue_thread.start()
 
-    def _run_recommend_task(self):
+    @Slot()
+    def CancelReasoning(self):
+        with self._reasoning_lock:
+            if not self._reasoning_in_progress:
+                return
+            self._reasoning_epoch += 1
+            self._reasoning_in_progress = False
+        self.get_logger().info("已取消食材识别等待，后续结果将忽略")
+
+    @Slot()
+    def CancelRecommend(self):
+        with self._recommend_lock:
+            if not self._recommend_in_progress:
+                return
+            self._recommend_epoch += 1
+            self._recommend_in_progress = False
+        self.get_logger().info("已取消推荐等待，后续结果将忽略")
+
+    @Slot()
+    def CancelTongueDiagnosis(self):
+        with self._tongue_lock:
+            if not self._tongue_in_progress:
+                return
+            if self._tongue_waiting_result:
+                self._tongue_ignore_result_count += 1
+            self._tongue_epoch += 1
+            self._tongue_in_progress = False
+            self._tongue_waiting_result = False
+        self.get_logger().info("已取消舌诊等待，后续结果将忽略")
+
+    def _is_reasoning_active_epoch(self, epoch: int) -> bool:
+        with self._reasoning_lock:
+            return self._reasoning_in_progress and self._reasoning_epoch == epoch
+
+    def _is_recommend_active_epoch(self, epoch: int) -> bool:
+        with self._recommend_lock:
+            return self._recommend_in_progress and self._recommend_epoch == epoch
+
+    def _is_tongue_active_epoch(self, epoch: int) -> bool:
+        with self._tongue_lock:
+            return self._tongue_in_progress and self._tongue_epoch == epoch
+
+    def _run_recommend_task(self, task_epoch: int):
         try:
             result = self._request_recommend_result()
+            if not self._is_recommend_active_epoch(task_epoch):
+                return
+
             if result is None:
                 self.recommend_updated.emit("暂未生成推荐，请稍后再试。")
                 return
@@ -219,37 +307,84 @@ class DisplayNode(Node, QObject):
             self.recommend_updated.emit(self._format_recommend_result_text(result))
         except Exception as e:
             self.get_logger().error(f"推荐任务执行失败:{e}")
-            self.recommend_updated.emit("推荐任务执行失败，请稍后再试。")
+            if self._is_recommend_active_epoch(task_epoch):
+                self.recommend_updated.emit("推荐任务执行失败，请稍后再试。")
         finally:
             with self._recommend_lock:
-                self._recommend_in_progress = False
+                if self._recommend_epoch == task_epoch:
+                    self._recommend_in_progress = False
 
-    def _run_tongue_task(self, image: np.ndarray):
+    def _run_tongue_task(self, image: np.ndarray, task_epoch: int):
         try:
             self._publish_tongue_image(image)
+            if not self._is_tongue_active_epoch(task_epoch):
+                return
+            with self._tongue_lock:
+                if self._tongue_epoch == task_epoch:
+                    self._tongue_waiting_result = True
             self.tongue_health_updated.emit("舌诊图片已发送，正在等待健康检测结果......")
         except Exception as e:
             self.get_logger().error(f"舌诊任务执行失败:{e}")
-            self.tongue_health_updated.emit("健康检测发送失败，请稍后重试。")
+            if self._is_tongue_active_epoch(task_epoch):
+                self.tongue_health_updated.emit("健康检测发送失败，请稍后重试。")
             with self._tongue_lock:
-                self._tongue_in_progress = False
+                if self._tongue_epoch == task_epoch:
+                    self._tongue_in_progress = False
+                    self._tongue_waiting_result = False
 
-    def _run_reasoning_task(self, image: np.ndarray):
+    def _run_reasoning_task(self, image: np.ndarray, location: int, task_epoch: int):
+        submitted = False
         try:
             result = self._request_reasoning_result(image)
-            if result is None:
+            if not self._is_reasoning_active_epoch(task_epoch):
                 return
 
-            self._submit_reasoning_result(result)
+            if result is None:
+                self.food_recognition_updated.emit(
+                    self._format_food_recognition_error_text(
+                        location, "AI 推理失败，请稍后重试。"
+                    )
+                )
+                return
+
+            submitted = self._submit_reasoning_result(result, location, task_epoch)
         except Exception as e:
             self.get_logger().error(f"识别任务执行失败:{e}")
+            if self._is_reasoning_active_epoch(task_epoch):
+                error_text = (
+                    "服务器过载"
+                    if self._is_server_overloaded_error(e)
+                    else "识别任务执行失败，请稍后再试。"
+                )
+                self.food_recognition_updated.emit(
+                    self._format_food_recognition_error_text(
+                        location, error_text
+                    )
+                )
         finally:
             with self._reasoning_lock:
-                self._reasoning_in_progress = False
+                if (not submitted) and self._reasoning_epoch == task_epoch:
+                    self._reasoning_in_progress = False
 
-    def _submit_reasoning_result(self, result: dict):
-        self._refresh_ingredient_slots_from_db()
-        location = self._allocate_location()
+    def _is_server_overloaded_error(self, error: Exception) -> bool:
+        status_code = getattr(error, "status_code", None)
+        if status_code == 429:
+            return True
+
+        message = str(error).lower()
+        return (
+            " 429 " in f" {message} "
+            or "error code: 429" in message
+            or "temporarily overloaded" in message
+            or "service may be temporarily overloaded" in message
+            or "'code': '1305'" in message
+            or '"code": "1305"' in message
+        )
+
+    def _submit_reasoning_result(self, result: dict, location: int, task_epoch: int):
+        if not self._is_reasoning_active_epoch(task_epoch):
+            return False
+
         request = SQLOperation.Request()
         request.operation = 1
         request.name = result["名字"]
@@ -261,19 +396,27 @@ class DisplayNode(Node, QObject):
         future = self.clients_sql.call_async(request)
         future.add_done_callback(self.SymCallback_)
         future.add_done_callback(
-            lambda fut, result_snapshot=dict(result), slot=location: self._food_submit_callback(
-                fut, result_snapshot, slot
+            lambda fut, result_snapshot=dict(result), slot=location, epoch=task_epoch: self._food_submit_callback(
+                fut, result_snapshot, slot, epoch
             )
         )
         self.get_logger().info(
             f"识别完成，已提交食材信息: {request.name}, location={request.location}"
         )
+        return True
 
-    def _food_submit_callback(self, future, result: dict, location: int):
+    def _food_submit_callback(self, future, result: dict, location: int, task_epoch: int):
         try:
+            if not self._is_reasoning_active_epoch(task_epoch):
+                return
+
             response = future.result()
             if not response.is_success:
-                self.food_recognition_updated.emit("食材识别已完成，但写入数据库失败，请稍后重试。")
+                self.food_recognition_updated.emit(
+                    self._format_food_recognition_error_text(
+                        location, "食材识别已完成，但写入数据库失败，请稍后重试。"
+                    )
+                )
                 return
 
             self.food_recognition_updated.emit(
@@ -281,22 +424,45 @@ class DisplayNode(Node, QObject):
             )
         except Exception as e:
             self.get_logger().error(f"食材识别结果回调失败:{e}")
-            self.food_recognition_updated.emit("食材识别已完成，但结果提示生成失败。")
+            self.food_recognition_updated.emit(
+                self._format_food_recognition_error_text(
+                    location, "食材识别已完成，但结果提示生成失败。"
+                )
+            )
+        finally:
+            with self._reasoning_lock:
+                if self._reasoning_epoch == task_epoch:
+                    self._reasoning_in_progress = False
 
-    def _format_food_recognition_text(self, result: dict, location: int) -> str:
+    def _format_location_text(self, location: int) -> str:
         row = ((location - 1) // 3) + 1
         col = ((location - 1) % 3) + 1
+        return f"推荐放置位置：第 {location} 格（第 {row} 行，第 {col} 列）"
+
+    def _format_food_recognition_pending_text(self, location: int) -> str:
+        return (
+            f"{self._format_location_text(location)}\n\n"
+            "AI 正在推理中，请稍等..."
+        )
+
+    def _format_food_recognition_error_text(self, location: int, error_text: str) -> str:
+        return (
+            f"{self._format_location_text(location)}\n\n"
+            f"{error_text}"
+        )
+
+    def _format_food_recognition_text(self, result: dict, location: int) -> str:
         name = str(result.get("名字", "未识别")).strip()
         expiry = str(result.get("保质期", "未识别")).strip()
         nutrition = str(result.get("营养价值", "未识别")).strip()
         notes = str(result.get("食用建议", "未识别")).strip()
 
         return (
+            f"{self._format_location_text(location)}\n\n"
             f"识别完成：{name}\n"
             f"保质期：{expiry} 天\n"
             f"营养价值：{nutrition}\n"
-            f"食用建议：{notes}\n"
-            f"推荐放置位置：第 {location} 格（第 {row} 行，第 {col} 列）"
+            f"食用建议：{notes}"
         )
 
     def _refresh_ingredient_slots_from_db(self):
@@ -507,6 +673,20 @@ class DisplayNode(Node, QObject):
         return None
 
     def _handle_tongue_result_message(self, payload: bytes):
+        with self._tongue_lock:
+            if self._tongue_ignore_result_count > 0:
+                self._tongue_ignore_result_count -= 1
+                self._tongue_waiting_result = False
+                self._tongue_in_progress = False
+                self.get_logger().info("舌诊结果已按取消请求忽略")
+                return
+
+            if not self._tongue_in_progress and not self._tongue_waiting_result:
+                self.get_logger().info("收到舌诊结果，但当前无等待任务，已忽略")
+                return
+
+            self._tongue_waiting_result = False
+
         try:
             payload_text = payload.decode("utf-8")
             result_data = json.loads(payload_text)

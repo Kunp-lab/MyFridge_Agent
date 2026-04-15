@@ -1,5 +1,7 @@
 #include "sql_server/sql_server_node.hpp"
 #include <sstream>
+#include <utility>
+#include <vector>
 
 namespace
 {
@@ -69,6 +71,10 @@ void SqlServerNode::init()
     _pos_subscriber = this->create_subscription<std_msgs::msg::Int16MultiArray>(
         "/env/pos", 10,
         std::bind(&SqlServerNode::on_position_update, this,
+                  std::placeholders::_1));
+    _clock_subscriber = this->create_subscription<std_msgs::msg::Int16MultiArray>(
+        "/env/clock", 10,
+        std::bind(&SqlServerNode::on_clock_update, this,
                   std::placeholders::_1));
 
     // rclcpp init
@@ -489,6 +495,178 @@ void SqlServerNode::on_position_update(
         RCLCPP_WARN(this->get_logger(),
                     "Ignore /env/pos message: unknown action=%d", action);
     }
+}
+
+void SqlServerNode::on_clock_update(
+    const std_msgs::msg::Int16MultiArray::SharedPtr msg)
+{
+    if (!msg || msg->data.empty())
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "Ignore /env/clock message: invalid data size");
+        return;
+    }
+
+    const int day_delta = static_cast<int>(msg->data[0]);
+    if (day_delta == 0)
+    {
+        RCLCPP_INFO(this->get_logger(),
+                    "/env/clock delta is 0 day, nothing to update");
+        return;
+    }
+
+    if (!apply_expiry_offset_to_all(day_delta))
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Failed to apply /env/clock delta=%d to ingredients",
+                     day_delta);
+    }
+}
+
+bool SqlServerNode::apply_expiry_offset_to_all(int day_delta)
+{
+    if (day_delta > 0)
+    {
+        return increase_all_expiry_days(day_delta);
+    }
+    if (day_delta < 0)
+    {
+        return decrease_all_expiry_days_with_guard(day_delta);
+    }
+    return true;
+}
+
+bool SqlServerNode::increase_all_expiry_days(int day_delta)
+{
+    sqlite3_stmt *stmt = nullptr;
+    const char *sql = "UPDATE ingredients SET expiry_date = expiry_date + ?;";
+
+    int rc = sqlite3_prepare_v2(_db, sql, -1, &stmt, nullptr);
+    if (rc != SQLITE_OK)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Prepare increase_all_expiry_days failed: %s",
+                     sqlite3_errmsg(_db));
+        return false;
+    }
+
+    sqlite3_bind_int(stmt, 1, day_delta);
+    rc = sqlite3_step(stmt);
+    const bool done = (rc == SQLITE_DONE);
+    const int changes = done ? sqlite3_changes(_db) : 0;
+    sqlite3_finalize(stmt);
+
+    if (!done)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Increase expiry days failed: %s", sqlite3_errmsg(_db));
+        return false;
+    }
+
+    RCLCPP_INFO(this->get_logger(),
+                "Applied +%d day(s) to all ingredients, affected rows=%d",
+                day_delta, changes);
+    return true;
+}
+
+bool SqlServerNode::decrease_all_expiry_days_with_guard(int day_delta)
+{
+    sqlite3_stmt *select_stmt = nullptr;
+    const char *select_sql = "SELECT id, expiry_date FROM ingredients;";
+
+    int rc = sqlite3_prepare_v2(_db, select_sql, -1, &select_stmt, nullptr);
+    if (rc != SQLITE_OK)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Prepare decrease select failed: %s",
+                     sqlite3_errmsg(_db));
+        return false;
+    }
+
+    std::vector<std::pair<int, int>> planned_updates;
+    while ((rc = sqlite3_step(select_stmt)) == SQLITE_ROW)
+    {
+        const int id = sqlite3_column_int(select_stmt, 0);
+        const int expiry = sqlite3_column_int(select_stmt, 1);
+        int next_expiry = expiry + day_delta;
+        if (next_expiry < 0)
+        {
+            next_expiry = 0;
+        }
+
+        if (next_expiry != expiry)
+        {
+            planned_updates.emplace_back(id, next_expiry);
+        }
+    }
+
+    if (rc != SQLITE_DONE)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Read ingredients for decrease failed: %s",
+                     sqlite3_errmsg(_db));
+        sqlite3_finalize(select_stmt);
+        return false;
+    }
+    sqlite3_finalize(select_stmt);
+
+    if (planned_updates.empty())
+    {
+        RCLCPP_INFO(this->get_logger(),
+                    "Applied %d day(s), no ingredient expiry needs update",
+                    day_delta);
+        return true;
+    }
+
+    if (!execute_sql("BEGIN TRANSACTION;"))
+    {
+        return false;
+    }
+
+    sqlite3_stmt *update_stmt = nullptr;
+    const char *update_sql =
+        "UPDATE ingredients SET expiry_date = ? WHERE id = ?;";
+    rc = sqlite3_prepare_v2(_db, update_sql, -1, &update_stmt, nullptr);
+    if (rc != SQLITE_OK)
+    {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Prepare decrease update failed: %s",
+                     sqlite3_errmsg(_db));
+        execute_sql("ROLLBACK;");
+        return false;
+    }
+
+    for (const auto &item : planned_updates)
+    {
+        sqlite3_reset(update_stmt);
+        sqlite3_clear_bindings(update_stmt);
+        sqlite3_bind_int(update_stmt, 1, item.second);
+        sqlite3_bind_int(update_stmt, 2, item.first);
+
+        rc = sqlite3_step(update_stmt);
+        if (rc != SQLITE_DONE)
+        {
+            RCLCPP_ERROR(this->get_logger(),
+                         "Decrease update failed for id=%d: %s", item.first,
+                         sqlite3_errmsg(_db));
+            sqlite3_finalize(update_stmt);
+            execute_sql("ROLLBACK;");
+            return false;
+        }
+    }
+    sqlite3_finalize(update_stmt);
+
+    if (!execute_sql("COMMIT;"))
+    {
+        execute_sql("ROLLBACK;");
+        return false;
+    }
+
+    RCLCPP_INFO(this->get_logger(),
+                "Applied %d day(s) to ingredients with zero guard, "
+                "affected rows=%zu",
+                day_delta, planned_updates.size());
+    return true;
 }
 
 bool SqlServerNode::update_last_added_ingredient_location(int location)

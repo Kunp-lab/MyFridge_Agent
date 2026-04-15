@@ -24,14 +24,20 @@ class SqlServerNode : public rclcpp::Node
     rclcpp::Service<sql_interface::srv::SQLOperation>::SharedPtr _sql_server;
     rclcpp::Subscription<std_msgs::msg::Int16MultiArray>::SharedPtr
         _pos_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Int16MultiArray>::SharedPtr
+        _clock_subscriber;
     sqlite3 *_db;
     int _rc;
 
     void ensure_tables();
     bool execute_sql(const std::string &sql);
     void on_position_update(const std_msgs::msg::Int16MultiArray::SharedPtr msg);
+    void on_clock_update(const std_msgs::msg::Int16MultiArray::SharedPtr msg);
     bool update_last_added_ingredient_location(int location);
     bool delete_ingredient_by_location(int location);
+    bool apply_expiry_offset_to_all(int day_delta);
+    bool increase_all_expiry_days(int day_delta);
+    bool decrease_all_expiry_days_with_guard(int day_delta);
 };
 
 enum class Operation : uint8_t

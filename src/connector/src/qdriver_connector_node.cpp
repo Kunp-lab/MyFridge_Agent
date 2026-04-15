@@ -5,6 +5,7 @@
 #include "opencv2/objdetect.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/compressed_image.hpp"
+#include "std_msgs/msg/bool.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -26,6 +27,12 @@ class QD4310
         ser_.init();
         ser_.write("silent\n");
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+    void setZero()
+    {
+        ser_.write("config zero_pos\n");
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
 
     void enable()
@@ -96,12 +103,32 @@ class QDriverNode : public rclcpp::Node
 
         qd_ = std::make_unique<QD4310>(serial_port_, baudrate_);
         qd_->enable();
+        qd_->setZero();
 
         subscription_image_ =
             this->create_subscription<sensor_msgs::msg::CompressedImage>(
                 image_topic_, rclcpp::SensorDataQoS(),
                 [this](sensor_msgs::msg::CompressedImage::ConstSharedPtr msg)
                     -> void { image_callback(msg); });
+
+        subscription_control_ = this->create_subscription<std_msgs::msg::Bool>(
+            "Qdriver/control", 10,
+            [this](std_msgs::msg::Bool::ConstSharedPtr msg) -> void
+            {
+                running_flag_ = msg->data;
+                this->qd_->set_angle(0.0);
+                if (running_flag_)
+                {
+
+                    RCLCPP_WARN(this->get_logger(),
+                                "进入待机 ,running_flag_:%d", running_flag_);
+                }
+                else
+                {
+                    RCLCPP_WARN(this->get_logger(),
+                                "解除待机 ,running_flag_:%d", running_flag_);
+                }
+            });
 
         RCLCPP_INFO(this->get_logger(),
                     "QDriverNode started. topic=%s kp=%.3f deadband=%.3f "
@@ -177,6 +204,10 @@ class QDriverNode : public rclcpp::Node
 
     void image_callback(sensor_msgs::msg::CompressedImage::ConstSharedPtr msg)
     {
+        if (!running_flag_)
+        {
+            return;
+        }
         if (!qd_ || msg->data.empty())
         {
             return;
@@ -254,12 +285,8 @@ class QDriverNode : public rclcpp::Node
 
         publish_motor_speed(speed_command);
 
-        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
-                             "face_center_x=%.1f frame_center_x=%.1f "
-                             "error=%.3f cmd=%.3f confidence=%.3f(raw=%.3f)",
-                             face_center_x, frame_center_x, error_norm,
-                             speed_command, face_confidence_norm,
-                             face_confidence);
+        RCLCPP_INFO(this->get_logger(), "cmd=%.3f confidence=%.3f/n",
+                    speed_command, face_confidence_norm);
     }
 
     double normalize_confidence(double raw_confidence) const
@@ -313,12 +340,14 @@ class QDriverNode : public rclcpp::Node
     double confidence_min_{0.0};
     double confidence_max_{10.0};
 
+    bool running_flag_ = false;
     bool has_sent_command_{false};
     double last_speed_command_{0.0};
     rclcpp::Time last_command_time_;
 
     rclcpp::Subscription<sensor_msgs::msg::CompressedImage>::SharedPtr
         subscription_image_;
+    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr subscription_control_;
 };
 
 int main(int argc, char **argv)
