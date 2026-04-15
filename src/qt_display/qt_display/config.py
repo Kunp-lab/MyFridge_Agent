@@ -5,7 +5,7 @@ import platform
 def _get_broker_ip() -> str:
     machine = platform.machine().lower()
     if "arm" in machine or "aarch64" in machine:
-        return "192.168.172.1"
+        return "192.168.137.1"
     return "0.0.0.0"
 
 
