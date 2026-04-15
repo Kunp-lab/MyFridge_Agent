@@ -1,4 +1,6 @@
 from setuptools import setup
+import os
+from glob import glob # 导入 glob 模块来处理文件路径
 
 package_name = 'qt_display'
 
@@ -10,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -19,9 +22,6 @@ setup(
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
-        "launch.ros": [
-            "qtapp = launch.qtapp.launch:generate_launch_description",
-        ],
         'console_scripts': [
             'qt_display_node = qt_display.main:main'
         ],

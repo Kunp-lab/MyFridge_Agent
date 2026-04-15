@@ -26,7 +26,6 @@ from ament_index_python.packages import get_package_prefix
 
 
 def generate_launch_description():
-    # 算法pkg
     qt_display_node = Node(
         package="qt_display",
         executable="qt_display_node",
