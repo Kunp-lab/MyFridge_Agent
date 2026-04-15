@@ -19,6 +19,9 @@ setup(
     license='TODO: License declaration',
     tests_require=['pytest'],
     entry_points={
+        "launch.ros": [
+            "qtapp = launch.qtapp.launch:generate_launch_description",
+        ],
         'console_scripts': [
             'qt_display_node = qt_display.main:main'
         ],

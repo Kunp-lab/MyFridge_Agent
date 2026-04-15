@@ -58,6 +58,9 @@ install(TARGETS qdriver_connector_node
 install(FILES assets/haarcascade_frontalface_default.xml
   DESTINATION share/${PROJECT_NAME}/assets)
 
+install(FILES launch/connector.launch.py
+ DESTINATION share/${PROJECT_NAME}/launch)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
