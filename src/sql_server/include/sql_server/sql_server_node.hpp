@@ -8,7 +8,11 @@
 #include <sqlite3.h>
 #include <string>
 
+#if defined(__x86_64__)
+#define DB_ADRESS "/home/kunp/TrosWork/CreativeRobot/database/my_fridge"
+#else
 #define DB_ADRESS "/userdata/ros2_ws/CreativeRobot/database/my_fridge"
+#endif
 namespace CreativeRobot
 {
 class SqlServerNode : public rclcpp::Node
@@ -31,7 +35,8 @@ class SqlServerNode : public rclcpp::Node
 
     void ensure_tables();
     bool execute_sql(const std::string &sql);
-    void on_position_update(const std_msgs::msg::Int16MultiArray::SharedPtr msg);
+    void
+    on_position_update(const std_msgs::msg::Int16MultiArray::SharedPtr msg);
     void on_clock_update(const std_msgs::msg::Int16MultiArray::SharedPtr msg);
     bool update_last_added_ingredient_location(int location);
     bool delete_ingredient_by_location(int location);
