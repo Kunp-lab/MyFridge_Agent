@@ -79,11 +79,12 @@ class StandbyScreen(QWidget):
         self.display_temp = 4.0
         self.display_humidity = 78.0
         self._energy_min_watt = 35.0
-        self._energy_max_watt = 95.0
-        self._energy_watt = random.uniform(self._energy_min_watt, self._energy_max_watt)
+        self._energy_max_watt = 120.0
+        self._energy_watt = random.uniform(self._energy_min_watt, 95.0)
         self._energy_target_watt = self._energy_watt
         self._ink_phase = random.uniform(0.0, math.pi * 2.0)
         self._energy_tick = 0
+        self._energy_test_mode = False
 
         # 启动每秒更新的时钟
         self.timer = QTimer(self)
@@ -230,6 +231,10 @@ class StandbyScreen(QWidget):
     def _clamp_energy(self, value: float) -> float:
         return max(self._energy_min_watt, min(self._energy_max_watt, value))
 
+    def start_test_energy_ramp(self):
+        self._energy_test_mode = True
+        self._energy_target_watt = max(self._energy_target_watt, 110.0)
+
     def _energy_ratio(self) -> float:
         span = self._energy_max_watt - self._energy_min_watt
         if span <= 0:
@@ -260,14 +265,23 @@ class StandbyScreen(QWidget):
 
         # 每约 4 秒重新生成一个迷你冰箱合理区间内的随机能耗目标
         if self._energy_tick % 80 == 0:
-            self._energy_target_watt = random.uniform(
-                self._energy_min_watt, self._energy_max_watt
-            )
+            if self._energy_test_mode:
+                self._energy_target_watt = max(self._energy_target_watt, 110.0)
+            else:
+                self._energy_target_watt = random.uniform(
+                    self._energy_min_watt, 95.0
+                )
 
         # 通过一阶平滑逼近目标，避免突跳
-        self._energy_watt += (self._energy_target_watt - self._energy_watt) * 0.045
+        ramp_factor = 0.16 if self._energy_test_mode else 0.045
+        self._energy_watt += (self._energy_target_watt - self._energy_watt) * ramp_factor
         micro = math.sin(self._energy_tick * 0.17) * 0.08
         self._energy_watt = self._clamp_energy(self._energy_watt + micro)
+
+        if self._energy_test_mode and self._energy_watt >= 105.0:
+            self._energy_test_mode = False
+            self._energy_target_watt = max(self._energy_min_watt, min(95.0, self._energy_watt))
+
         self.update()
 
     def _draw_energy_ink_ring(self, painter: QPainter, center: QPointF, radius: float):
@@ -1476,6 +1490,7 @@ class SmartFridgeUI(QMainWindow):
         self.tongue_health_loading = False
         self.mock_temp = 4.0
         self.mock_humidity = 78.0
+        self.is_test = True  # 开机 10 秒后是否展示测试弹窗
 
         # 使用 StackedWidget 来管理 3 个页面
         self.stacked_widget = QStackedWidget()
@@ -1488,6 +1503,7 @@ class SmartFridgeUI(QMainWindow):
 
         self._apply_global_style()
         self._init_mock_environment_timer()
+        self._start_test_timer()
 
         self._start_ros2_thread(node=node)
         # 默认显示待机页面 (索引 0)，并通知电机开始运动
@@ -1860,6 +1876,76 @@ class SmartFridgeUI(QMainWindow):
     def set_environment(self, temp: float, humidity: float):
         self.status_label.setText("")
         self.standby_page.set_environment(temp, humidity)
+
+    def _start_test_timer(self):
+        self._test_timer = QTimer(self)
+        self._test_timer.setSingleShot(True)
+        self._test_timer.timeout.connect(self.test_fun)
+        self._test_timer.start(10000)
+
+    def test_fun(self):
+        """开机 10 秒后触发的测试弹窗与温度调整。"""
+        if not getattr(self, "is_test", False):
+            return
+
+        self.mock_temp = 20.0
+        self.set_environment(self.mock_temp, self.mock_humidity)
+        if getattr(self, "is_test", False):
+            self.standby_page.start_test_energy_ramp()
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle("能耗异常提示")
+        dialog.setWindowFlags(Qt.WindowType.Dialog | Qt.WindowType.FramelessWindowHint)
+        dialog.setModal(True)
+        dialog.resize(420, 180)
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(18, 18, 18, 18)
+        layout.setSpacing(16)
+
+        message_label = QLabel("能耗异常，请检查。")
+        message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        message_label.setWordWrap(True)
+        message_label.setStyleSheet(
+            "font-family:'Microsoft YaHei'; font-size:18px; color:#8B2500;"
+        )
+        layout.addWidget(message_label, stretch=1)
+
+        button = QPushButton("知道了")
+        button.setObjectName("TestAlertBtn")
+        button.setCursor(Qt.CursorShape.PointingHandCursor)
+        button.setFixedSize(120, 40)
+        button.clicked.connect(dialog.accept)
+
+        footer_layout = QHBoxLayout()
+        footer_layout.addStretch()
+        footer_layout.addWidget(button)
+        footer_layout.addStretch()
+        layout.addLayout(footer_layout)
+
+        dialog.setStyleSheet(
+            """
+            QDialog {
+                background-color: #FDF4E6;
+                border: 4px solid #A65A2E;
+                border-radius: 18px;
+            }
+            QPushButton#TestAlertBtn {
+                background-color: #B56C42;
+                color: #FFFFFF;
+                font-family: "Microsoft YaHei";
+                font-size: 15px;
+                font-weight: bold;
+                border-radius: 12px;
+                border: 2px solid #7E3D20;
+            }
+            QPushButton#TestAlertBtn:pressed {
+                background-color: #8F4B31;
+            }
+            """
+        )
+
+        dialog.exec()
 
     def set_food_item(
         self,
