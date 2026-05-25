@@ -7,14 +7,14 @@ import rclpy
 import numpy as np
 from PySide6.QtCore import QThread, Signal, QObject, Slot
 from sensor_msgs.msg import CompressedImage, Image
-from std_msgs.msg import String, Bool
+from std_msgs.msg import String, Bool, UInt8MultiArray
 from cv_bridge import CvBridge
 import cv2
 import os
 from openai import OpenAI
 from PySide6.QtGui import QImage
 import json
-from typing import Optional
+from typing import List, Optional
 from .config import Setting
 import paho.mqtt.client as mqtt
 import time
@@ -50,6 +50,9 @@ class DisplayNode(Node, QObject):
         self.publishers_qdriver_control_ = self.create_publisher(
             Bool, "Qdriver/control", qos_profile=10
         )
+        self.publishers_uart_data_ = self.create_publisher(
+            UInt8MultiArray, "/uart/data", qos_profile=10
+        )
         self.ingredient = [["", -1, [], []] for _ in range(9)]
         self.LLM_server = OpenAI(
             api_key=Setting.API_KEY.value,
@@ -67,6 +70,84 @@ class DisplayNode(Node, QObject):
         self.get_logger().info(
             f"已发布 Qdriver/control: {'true' if msg.data else 'false'}"
         )
+
+    @Slot()
+    def PublishStandbyUart(self):
+        self._publish_uart_packet(0xB3, [])
+
+    def _publish_location_hint_uart(self, location: int):
+        mcu_location = self._map_ui_location_to_mcu_hint(location)
+        if mcu_location is None:
+            self.get_logger().warn(f"位置 {location} 无法映射到 MCU 冰箱编号，跳过 B1")
+            return
+        self._publish_uart_packet(0xB1, [mcu_location])
+
+    def _publish_expiry_uart(self, location: int, expiry_days: int):
+        if self._map_ui_location_to_mcu_expiry(location) is None:
+            self.get_logger().info(
+                f"位置 {location} 不在 MCU 7 个编号范围内，跳过 B2 保质期发送"
+            )
+            return
+
+        payload = self._build_expiry_payload(location, expiry_days)
+        self._publish_uart_packet(0xB2, payload)
+
+    def _publish_uart_packet(self, func_code: int, payload: List[int]):
+        msg = UInt8MultiArray()
+        msg.data = [self._to_uint8(func_code)]
+        msg.data.extend(self._to_uint8(item) for item in payload)
+        self.publishers_uart_data_.publish(msg)
+        self.get_logger().info(
+            f"已发布 /uart/data: func=0x{func_code:02X}, payload={payload}"
+        )
+
+    def _build_expiry_payload(self, location: int, expiry_days: int) -> List[int]:
+        payload = [0] * 7
+        mcu_location = self._map_ui_location_to_mcu_expiry(location)
+        if mcu_location is not None:
+            payload[mcu_location - 1] = self._clamp_expiry_days(expiry_days)
+
+        for idx, item in enumerate(self.ingredient, start=1):
+            mapped_location = self._map_ui_location_to_mcu_expiry(idx)
+            if mapped_location is None or idx == location:
+                continue
+
+            expiry = item[1] if isinstance(item[1], int) else -1
+            if expiry >= 0:
+                payload[mapped_location - 1] = self._clamp_expiry_days(expiry)
+
+        return payload
+
+    def _map_ui_location_to_mcu_hint(self, location: int) -> Optional[int]:
+        return {
+            1: 1,
+            2: 2,
+            3: 3,
+            4: 6,
+            5: 5,
+            6: 4,
+            7: 7,
+            8: 7,
+            9: 7,
+        }.get(location)
+
+    def _map_ui_location_to_mcu_expiry(self, location: int) -> Optional[int]:
+        # B2 only has seven expiry fields; UI slots after 7 are intentionally ignored.
+        return {
+            1: 1,
+            2: 2,
+            3: 3,
+            4: 6,
+            5: 5,
+            6: 4,
+            7: 7,
+        }.get(location)
+
+    def _clamp_expiry_days(self, expiry_days: int) -> int:
+        return max(0, min(20, int(expiry_days)))
+
+    def _to_uint8(self, value: int) -> int:
+        return max(0, min(255, int(value)))
 
     def init_threads(self):
         self._image_lock = threading.Lock()
@@ -199,6 +280,7 @@ class DisplayNode(Node, QObject):
         self.food_recognition_updated.emit(
             self._format_food_recognition_pending_text(location)
         )
+        self._publish_location_hint_uart(location)
 
         self._reasoning_thread = threading.Thread(
             target=self._run_reasoning_task,
@@ -347,6 +429,7 @@ class DisplayNode(Node, QObject):
                 )
                 return
 
+            self._publish_expiry_uart(location, int(result["保质期"]))
             submitted = self._submit_reasoning_result(result, location, task_epoch)
         except Exception as e:
             self.get_logger().error(f"识别任务执行失败:{e}")
@@ -557,7 +640,7 @@ class DisplayNode(Node, QObject):
         image_base64 = self.encode_opencv_image(image, format=".jpg", quality=85)
 
         response = self.LLM_server.chat.completions.create(
-            model="glm-4.6v-flash",  # 推荐快速模型
+            model="gpt-5.5",  # 推荐快速模型
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
@@ -613,7 +696,7 @@ class DisplayNode(Node, QObject):
         }"""
         self.get_logger().info(f"{inventory_summary}\n\n\n{current_context}")
         response = self.LLM_server.chat.completions.create(
-            model="glm-4.6v-flash",  # 推荐快速模型
+            model="gpt-5.5",  # 推荐快速模型
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
@@ -810,6 +893,9 @@ class DisplayNode(Node, QObject):
 
         try:
             response = future.result()
+            if response is None:
+                return []
+            
             if not response.is_success:
                 return []
 

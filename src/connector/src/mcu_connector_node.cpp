@@ -3,6 +3,7 @@
 #include "std_msgs/msg/float32.hpp"
 #include "std_msgs/msg/float32_multi_array.hpp"
 #include "std_msgs/msg/int16_multi_array.hpp"
+#include "std_msgs/msg/u_int8_multi_array.hpp"
 #include <atomic>
 #include <mutex>
 #include <string>
@@ -33,6 +34,36 @@ class MCUConnector : public rclcpp::Node
         publisher_clock_ =
             this->create_publisher<std_msgs::msg::Int16MultiArray>("/env/clock",
                                                                    10);
+        _uart_data_subscriber = this->create_subscription<
+            std_msgs::msg::UInt8MultiArray>(
+            "/uart/data", 10,
+            [this](const std_msgs::msg::UInt8MultiArray::SharedPtr msg)
+            {
+                auto data = msg->data;
+                try
+                {
+                    if (data.empty())
+                    {
+                        RCLCPP_WARN(this->get_logger(),
+                                    "Ignore empty /uart/data message");
+                        return;
+                    }
+
+                    auto func_code = data.front();
+                    data.erase(data.begin());
+                    size_t sent = serial_.writePacket(func_code, data);
+                    RCLCPP_INFO(
+                        this->get_logger(),
+                        "Sent UART packet: header 0xA0, func_code 0x%02X, "
+                        "payload size %zu, tail 0xC0, size: %zu",
+                        func_code, data.size(), sent);
+                }
+                catch (const std::exception &e)
+                {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Failed to send packet: %s", e.what());
+                }
+            });
     }
 
     void serial_init()
@@ -149,6 +180,8 @@ class MCUConnector : public rclcpp::Node
     std::mutex data_mutex_;
     std::vector<uint8_t> latest_data_;
     rclcpp::TimerBase::SharedPtr timer_;
+    rclcpp::Subscription<std_msgs::msg::UInt8MultiArray>::SharedPtr
+        _uart_data_subscriber;
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float32MultiArray>>
         publisher_dht11_;
     std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Int16MultiArray>>
@@ -164,31 +197,30 @@ class MCUConnector : public rclcpp::Node
     std::vector<int> now_position_data_ = std::vector<int>(7, 0);
     void publishData()
     {
-        /**
+
         // Example: Send packet with header 0xA0, func_code 0x01,
-        payload "a",
+        // payload "a",
         // tail 0xC0
-        try
-        {
-            size_t sent = serial_.writePacket(0x01, "a");
-            RCLCPP_INFO(this->get_logger(),
-                        "Sent packet with header 0xA0, func_code 0x01, payload "
-                        "'a', tail 0xC0, size: %zu",
-                        sent);
-        }
-        catch (const std::exception &e)
-        {
-            RCLCPP_ERROR(this->get_logger(), "Failed to send packet: %s",
-                         e.what());
-        }
-         *
-         */
+        // try
+        // {
+        //     size_t sent = serial_.writePacket(0x01, "a");
+        //     RCLCPP_INFO(this->get_logger(),
+        //                 "Sent packet with header 0xA0, func_code 0x01,
+        //                 payload "
+        //                 "'a', tail 0xC0, size: %zu",
+        //                 sent);
+        // }
+        // catch (const std::exception &e)
+        // {
+        //     RCLCPP_ERROR(this->get_logger(), "Failed to send packet: %s",
+        //                  e.what());
+        // }
 
         // send data of dht11
-        std_msgs::msg::Float32MultiArray msg;
-        msg.data.resize(dht11_data_.size());
-        std::copy(dht11_data_.begin(), dht11_data_.end(), msg.data.begin());
-        publisher_dht11_->publish(msg);
+        // std_msgs::msg::Float32MultiArray msg;
+        // msg.data.resize(dht11_data_.size());
+        // std::copy(dht11_data_.begin(), dht11_data_.end(), msg.data.begin());
+        // publisher_dht11_->publish(msg);
 
         // send data of position
         std::vector<int> append_list{};

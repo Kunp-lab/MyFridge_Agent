@@ -1651,6 +1651,8 @@ class SmartFridgeUI(QMainWindow):
 
         if page_index == 0 and (force_standby_publish or prev_index != 0):
             self._publish_qdriver_control(True)
+            if hasattr(self, "ros_worker") and self.ros_worker and self.ros_worker.node:
+                self.ros_worker.node.PublishStandbyUart()
 
     def _handle_manual_capture(self):
         self.vision_page.set_result_text("已接收图像，正在准备识别......")

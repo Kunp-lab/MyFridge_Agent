@@ -10,8 +10,8 @@ def _get_broker_ip() -> str:
 
 
 class Setting(Enum):
-    API_KEY = "726950d7799a42b793eb5320a4a96e57.XABR5f1gGMyM7ScB"
-    BASE_URL = "https://api.z.ai/api/paas/v4/"
+    API_KEY = "sk-7ZGr2wxHCXJuzT0boJPMlyBr1aQlNJL7kEIItZeeCB1eivZ7"
+    BASE_URL = "https://chat.ekti.cc/v1"
     BROKER_IP = _get_broker_ip()
     TONGUE_RECORD_ID = "user1"
     TOPIC_SEND = "tongue/predict"
