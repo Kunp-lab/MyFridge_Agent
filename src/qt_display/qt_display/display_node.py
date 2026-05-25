@@ -82,14 +82,8 @@ class DisplayNode(Node, QObject):
             return
         self._publish_uart_packet(0xB1, [mcu_location])
 
-    def _publish_expiry_uart(self, location: int, expiry_days: int):
-        if self._map_ui_location_to_mcu_expiry(location) is None:
-            self.get_logger().info(
-                f"位置 {location} 不在 MCU 7 个编号范围内，跳过 B2 保质期发送"
-            )
-            return
-
-        payload = self._build_expiry_payload(location, expiry_days)
+    def _publish_all_expiry_uart(self):
+        payload = self._build_expiry_payload()
         self._publish_uart_packet(0xB2, payload)
 
     def _publish_uart_packet(self, func_code: int, payload: List[int]):
@@ -101,15 +95,11 @@ class DisplayNode(Node, QObject):
             f"已发布 /uart/data: func=0x{func_code:02X}, payload={payload}"
         )
 
-    def _build_expiry_payload(self, location: int, expiry_days: int) -> List[int]:
+    def _build_expiry_payload(self) -> List[int]:
         payload = [0] * 7
-        mcu_location = self._map_ui_location_to_mcu_expiry(location)
-        if mcu_location is not None:
-            payload[mcu_location - 1] = self._clamp_expiry_days(expiry_days)
-
         for idx, item in enumerate(self.ingredient, start=1):
             mapped_location = self._map_ui_location_to_mcu_expiry(idx)
-            if mapped_location is None or idx == location:
+            if mapped_location is None:
                 continue
 
             expiry = item[1] if isinstance(item[1], int) else -1
@@ -168,6 +158,9 @@ class DisplayNode(Node, QObject):
         self._tongue_ignore_result_count = 0
         self._location_lock = threading.Lock()
         self._location_cursor = 1
+        self._inventory_refresh_lock = threading.Lock()
+        self._inventory_refresh_epoch = 0
+        self._inventory_refresh_pending = 0
 
     def init_mqtt_connect(self):
         def on_connect(client, userdata, flags, reason_code, properties=None):
@@ -213,25 +206,42 @@ class DisplayNode(Node, QObject):
         self.image_updated.emit(qimage.copy())
 
     def timer_callback(self):
-        for location in range(9):
-            self.SqlOpSend_(location + 1, self.SymCallback_)
-            self.data_updated.emit(self.ingredient[:])
+        if not self.clients_sql.wait_for_service(0.5):
+            self.get_logger().warn("服务 /sql_operation 未上线，跳过本轮库存刷新")
+            return
 
-    def SqlOpSend_(self, location: int, callback):
-        try:
-            if not self.clients_sql.wait_for_service(0.5):
-                self.get_logger().warn(f"服务 /sql_operation 未上线,location={location}")
+        with self._inventory_refresh_lock:
+            if self._inventory_refresh_pending > 0:
                 return
+
+            self._inventory_refresh_epoch += 1
+            refresh_epoch = self._inventory_refresh_epoch
+            self._inventory_refresh_pending = 9
+
+        for location in range(1, 10):
+            self.SqlOpSend_(location, self.SymCallback_, refresh_epoch)
+
+    def SqlOpSend_(self, location: int, callback, refresh_epoch: Optional[int] = None):
+        try:
             request = SQLOperation.Request()
             request.operation = 4
             request.location = location
             future = self.clients_sql.call_async(request)
-            future.add_done_callback(callback=callback)
+            future.add_done_callback(
+                lambda fut, epoch=refresh_epoch: callback(fut, epoch)
+            )
         except Exception as e:
             self.get_logger().warn(f"查询位置 {location} 失败: {e}")
+            if refresh_epoch is not None:
+                self._finish_inventory_refresh_slot(refresh_epoch)
 
-    def SymCallback_(self, future):
+    def SymCallback_(self, future, refresh_epoch: Optional[int] = None):
         try:
+            if refresh_epoch is not None and not self._is_current_inventory_refresh(
+                refresh_epoch
+            ):
+                return
+
             response = future.result()
             if 1 <= response.location <= 9:
                 idx = response.location - 1
@@ -246,6 +256,28 @@ class DisplayNode(Node, QObject):
                     self.ingredient[idx] = ["", -1, [], []]
         except Exception as e:
             self.get_logger().error(f"Service call failed: {e}")
+        finally:
+            if refresh_epoch is not None:
+                self._finish_inventory_refresh_slot(refresh_epoch)
+
+    def _is_current_inventory_refresh(self, refresh_epoch: int) -> bool:
+        with self._inventory_refresh_lock:
+            return refresh_epoch == self._inventory_refresh_epoch
+
+    def _finish_inventory_refresh_slot(self, refresh_epoch: int):
+        should_publish = False
+        with self._inventory_refresh_lock:
+            if refresh_epoch != self._inventory_refresh_epoch:
+                return
+
+            self._inventory_refresh_pending -= 1
+            if self._inventory_refresh_pending <= 0:
+                self._inventory_refresh_pending = 0
+                should_publish = True
+
+        if should_publish:
+            self.data_updated.emit(self.ingredient[:])
+            self._publish_all_expiry_uart()
 
     @Slot()
     def StartReasoning(self):
@@ -429,7 +461,6 @@ class DisplayNode(Node, QObject):
                 )
                 return
 
-            self._publish_expiry_uart(location, int(result["保质期"]))
             submitted = self._submit_reasoning_result(result, location, task_epoch)
         except Exception as e:
             self.get_logger().error(f"识别任务执行失败:{e}")
