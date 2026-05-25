@@ -73,18 +73,18 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def PublishStandbyUart(self):
-        self._publish_uart_packet(0xB3, [])
+        self._publish_uart_packet(0xB2, [])
 
     def _publish_location_hint_uart(self, location: int):
         mcu_location = self._map_ui_location_to_mcu_hint(location)
         if mcu_location is None:
-            self.get_logger().warn(f"位置 {location} 无法映射到 MCU 冰箱编号，跳过 B1")
+            self.get_logger().warn(f"位置 {location} 无法映射到 MCU 冰箱编号，跳过 B0")
             return
-        self._publish_uart_packet(0xB1, [mcu_location])
+        self._publish_uart_packet(0xB0, [mcu_location])
 
     def _publish_all_expiry_uart(self):
         payload = self._build_expiry_payload()
-        self._publish_uart_packet(0xB2, payload)
+        self._publish_uart_packet(0xB1, payload)
 
     def _publish_uart_packet(self, func_code: int, payload: List[int]):
         msg = UInt8MultiArray()
@@ -122,7 +122,7 @@ class DisplayNode(Node, QObject):
         }.get(location)
 
     def _map_ui_location_to_mcu_expiry(self, location: int) -> Optional[int]:
-        # B2 only has seven expiry fields; UI slots after 7 are intentionally ignored.
+        # B1 only has seven expiry fields; UI slots after 7 are intentionally ignored.
         return {
             1: 1,
             2: 2,
