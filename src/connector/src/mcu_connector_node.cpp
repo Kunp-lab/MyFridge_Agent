@@ -8,6 +8,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <utility>
 
 class MCUConnector : public rclcpp::Node
 {
@@ -142,10 +143,61 @@ class MCUConnector : public rclcpp::Node
                                  " Function Code 0xB1 packet received error");
                     return;
                 }
+
                 std::lock_guard<std::mutex> lock(position_data_mutex_);
-                now_position_data_.swap(last_position_data_);
+
+                // 首帧只建立基线，避免上电后把当前静态状态误判成增减事件。
+                if (!position_initialized_)
+                {
+                    for (size_t i = 0; i < 7; i++)
+                    {
+                        position_state_[i] = static_cast<int>(packet[i]);
+                    }
+                    position_initialized_ = true;
+                    RCLCPP_INFO(this->get_logger(),
+                                "Initialized pressure baseline from first 0xB1 frame");
+                    return;
+                }
+
                 for (size_t i = 0; i < 7; i++)
-                    now_position_data_[i] = packet[i];
+                {
+                    const int previous = position_state_[i];
+                    const int current = static_cast<int>(packet[i]);
+                    if (previous == current)
+                    {
+                        continue;
+                    }
+
+                    const int mcu_location = static_cast<int>(i) + 1;
+                    const int ui_location =
+                        map_mcu_location_to_ui_location(mcu_location);
+                    if (ui_location <= 0)
+                    {
+                        RCLCPP_WARN(this->get_logger(),
+                                    "Ignore pressure change at invalid MCU location=%d",
+                                    mcu_location);
+                        position_state_[i] = current;
+                        continue;
+                    }
+
+                    if (previous == 1 && current == 0)
+                    {
+                        pending_pos_events_.emplace_back(-1, ui_location);
+                    }
+                    else if (previous == 0 && current == 1)
+                    {
+                        pending_pos_events_.emplace_back(1, ui_location);
+                    }
+                    else
+                    {
+                        RCLCPP_WARN(this->get_logger(),
+                                    "Ignore non-binary pressure transition at MCU "
+                                    "location=%d: %d -> %d",
+                                    mcu_location, previous, current);
+                    }
+
+                    position_state_[i] = current;
+                }
             });
 
         serial_.setDefaultHandler(
@@ -193,8 +245,33 @@ class MCUConnector : public rclcpp::Node
     std::mutex clock_data_mutex_;
     std::mutex position_data_mutex_;
     std::vector<int> clock_data_ = std::vector<int>(2, 0);
-    std::vector<int> last_position_data_ = std::vector<int>(7, 0);
-    std::vector<int> now_position_data_ = std::vector<int>(7, 0);
+    std::vector<int> position_state_ = std::vector<int>(7, 0);
+    std::vector<std::pair<int, int>> pending_pos_events_;
+    bool position_initialized_ = false;
+
+    int map_mcu_location_to_ui_location(int mcu_location) const
+    {
+        switch (mcu_location)
+        {
+        case 1:
+            return 1;
+        case 2:
+            return 2;
+        case 3:
+            return 3;
+        case 4:
+            return 6;
+        case 5:
+            return 5;
+        case 6:
+            return 4;
+        case 7:
+            return 7;
+        default:
+            return -1;
+        }
+    }
+
     void publishData()
     {
 
@@ -222,44 +299,26 @@ class MCUConnector : public rclcpp::Node
         // std::copy(dht11_data_.begin(), dht11_data_.end(), msg.data.begin());
         // publisher_dht11_->publish(msg);
 
-        // send data of position
-        std::vector<int> append_list{};
-        std::vector<int> delete_list{};
-
-        for (size_t i = 0; i < last_position_data_.size(); i++)
+        // 定时器仅负责把串口线程检测到的事件发布到 /env/pos。
+        std::vector<std::pair<int, int>> events_to_publish;
         {
-            auto temp = last_position_data_[i] - now_position_data_[i];
-            if (temp == 1)
+            std::lock_guard<std::mutex> lock(position_data_mutex_);
+            if (!position_initialized_ || pending_pos_events_.empty())
             {
-                delete_list.push_back(i);
+                return;
             }
-            else if (temp == -1)
-            {
-                append_list.push_back(i);
-            }
+            events_to_publish.swap(pending_pos_events_);
         }
-        std::copy(now_position_data_.begin(), now_position_data_.end(),
-                  last_position_data_.begin());
 
-        for (auto item : append_list)
+        for (const auto &event : events_to_publish)
         {
             std_msgs::msg::Int16MultiArray msg;
             msg.data.resize(2);
-            msg.data[0] = 1;
-            msg.data[1] = item + 1;
+            msg.data[0] = event.first;
+            msg.data[1] = event.second;
             publisher_pos_->publish(msg);
-            RCLCPP_INFO(this->get_logger(), "append %d,%d", msg.data[0],
-                        msg.data[1]);
-        }
-
-        for (auto item : delete_list)
-        {
-            std_msgs::msg::Int16MultiArray msg;
-            msg.data.resize(2);
-            msg.data[0] = -1;
-            msg.data[1] = item + 1;
-            publisher_pos_->publish(msg);
-            RCLCPP_INFO(this->get_logger(), "delete %d,%d", msg.data[0],
+            RCLCPP_INFO(this->get_logger(), "%s %d,%d",
+                        msg.data[0] > 0 ? "append" : "delete", msg.data[0],
                         msg.data[1]);
         }
     }
