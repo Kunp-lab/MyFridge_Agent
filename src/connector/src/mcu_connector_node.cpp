@@ -34,36 +34,36 @@ class MCUConnector : public rclcpp::Node
         publisher_clock_ =
             this->create_publisher<std_msgs::msg::Int16MultiArray>("/env/clock",
                                                                    10);
-        _uart_data_subscriber = this->create_subscription<
-            std_msgs::msg::UInt8MultiArray>(
-            "/uart/data", 10,
-            [this](const std_msgs::msg::UInt8MultiArray::SharedPtr msg)
-            {
-                auto data = msg->data;
-                try
+        _uart_data_subscriber =
+            this->create_subscription<std_msgs::msg::UInt8MultiArray>(
+                "/uart/data", 10,
+                [this](const std_msgs::msg::UInt8MultiArray::SharedPtr msg)
                 {
-                    if (data.empty())
+                    auto data = msg->data;
+                    try
                     {
-                        RCLCPP_WARN(this->get_logger(),
-                                    "Ignore empty /uart/data message");
-                        return;
-                    }
+                        if (data.empty())
+                        {
+                            RCLCPP_WARN(this->get_logger(),
+                                        "Ignore empty /uart/data message");
+                            return;
+                        }
 
-                    auto func_code = data.front();
-                    data.erase(data.begin());
-                    size_t sent = serial_.writePacket(func_code, data);
-                    RCLCPP_INFO(
-                        this->get_logger(),
-                        "Sent UART packet: header 0xA0, func_code 0x%02X, "
-                        "payload size %zu, tail 0xC0, size: %zu",
-                        func_code, data.size(), sent);
-                }
-                catch (const std::exception &e)
-                {
-                    RCLCPP_ERROR(this->get_logger(),
-                                 "Failed to send packet: %s", e.what());
-                }
-            });
+                        auto func_code = data.front();
+                        data.erase(data.begin());
+                        size_t sent = serial_.writePacket(func_code, data);
+                        RCLCPP_INFO(
+                            this->get_logger(),
+                            "Sent UART packet: header 0xA0, func_code 0x%02X, "
+                            "payload size %zu, tail 0xC0, size: %zu",
+                            func_code, data.size(), sent);
+                    }
+                    catch (const std::exception &e)
+                    {
+                        RCLCPP_ERROR(this->get_logger(),
+                                     "Failed to send packet: %s", e.what());
+                    }
+                });
     }
 
     void serial_init()
@@ -248,6 +248,8 @@ class MCUConnector : public rclcpp::Node
             msg.data[0] = 1;
             msg.data[1] = item + 1;
             publisher_pos_->publish(msg);
+            RCLCPP_INFO(this->get_logger(), "append %d,%d", msg.data[0],
+                        msg.data[1]);
         }
 
         for (auto item : delete_list)
@@ -257,6 +259,8 @@ class MCUConnector : public rclcpp::Node
             msg.data[0] = -1;
             msg.data[1] = item + 1;
             publisher_pos_->publish(msg);
+            RCLCPP_INFO(this->get_logger(), "delete %d,%d", msg.data[0],
+                        msg.data[1]);
         }
     }
 };
