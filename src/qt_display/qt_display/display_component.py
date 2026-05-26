@@ -1909,7 +1909,7 @@ class SmartFridgeUI(QMainWindow):
         message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         message_label.setWordWrap(True)
         message_label.setStyleSheet(
-            "font-family:'Microsoft YaHei'; font-size:18px; color:#8B2500;"
+            "font-family:'Microsoft YaHei'; font-size:36px; color:#8B2500;"
         )
         layout.addWidget(message_label, stretch=1)
 
