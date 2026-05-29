@@ -861,7 +861,7 @@ class DisplayNode(Node, QObject):
         image_base64 = self.encode_opencv_image(image, format=".jpg", quality=85)
 
         response = self.LLM_server.chat.completions.create(
-            model="gpt-5.5",  # 推荐快速模型
+            model="gpt-5.4-mini",  # 推荐快速模型
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
@@ -917,8 +917,8 @@ class DisplayNode(Node, QObject):
         请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
         {
         "近几天的营养状况概括": "如果没在传给你的数据里看到就说“未查询到”",
-        "推荐食谱1": "根据冰箱里有的食材的基础，和当前的浙江杭州的节气环境温湿度，给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买",
-        "推荐食谱2": "根据冰箱里有的食材的基础，和当前的浙江杭州的节气环境温湿度，给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买"
+        "推荐食谱1": "根据冰箱里有的食材的基础，和当前的浙江杭州节气的特点（比如最近湿气有点重），给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买",
+        "推荐食谱2": "根据冰箱里有的食材的基础，和当前的浙江杭州节气的特点（比如最近湿气有点重），给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买"
         }"""
         self.get_logger().info(f"{inventory_summary}\n\n\n{current_context}")
         response = self.LLM_server.chat.completions.create(
@@ -937,10 +937,9 @@ class DisplayNode(Node, QObject):
                                 "以下是冰箱中的现有食材信息，请结合这些内容给出推荐。\n"
                                 f"{inventory_summary}\n"
                                 "要求：\n"
-                                "1. 优先使用已有且临近保质期的食材。\n"
-                                "2. 推荐内容要明确哪些食材需要额外购买。\n"
-                                "3. 近几天营养概括只能基于提供的数据，不要虚构体检或摄入记录。\n"
-                                "4. 健康检测信息只能作为生活方式参考，不要输出医疗确诊表述。"
+                                "1. 推荐内容要明确哪些食材需要额外购买。\n"
+                                "2. 近几天营养概括只能基于提供的数据，不要虚构体检或摄入记录。\n"
+                                "3. 健康检测信息只能作为生活方式参考，不要输出医疗确诊表述。"
                             ),
                         },
                     ],
