@@ -869,12 +869,13 @@ class DisplayNode(Node, QObject):
                     "content": [
                         {
                             "type": "text",
-                            "text": "分析图片中的食物，按要求输出四个信息",
+                            "text": "分析图片中的食材，按要求输出四个信息",
                         },
                         {
                             "type": "image_url",
                             "image_url": {
-                                "url": f"data:image/jpeg;base64,{image_base64}"
+                                "url": f"data:image/jpeg;base64,{image_base64}",
+                                "detail": "high"
                             },
                         },
                     ],
@@ -883,6 +884,7 @@ class DisplayNode(Node, QObject):
             response_format={"type": "json_object"},
             max_tokens=4000,
             temperature=0.1,
+            reasoning_effort="high"
         )
 
         try:
@@ -948,6 +950,7 @@ class DisplayNode(Node, QObject):
             response_format={"type": "json_object"},
             max_tokens=4000,
             temperature=0.1,
+            reasoning_effort="high"
         )
 
         try:
