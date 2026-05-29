@@ -70,6 +70,10 @@ class DisplayNode(Node, QObject):
         Args:
             enabled: `True` 表示启用，`False` 表示关闭。
         """
+        if not bool(enabled):
+            # 退出待机时恢复 B1 周期发送开关。
+            self._arm_periodic_expiry_uart(delay_seconds=0.0)
+
         msg = Bool()
         msg.data = bool(enabled)
         self.publishers_qdriver_control_.publish(msg)
