@@ -861,7 +861,7 @@ class DisplayNode(Node, QObject):
         image_base64 = self.encode_opencv_image(image, format=".jpg", quality=85)
 
         response = self.LLM_server.chat.completions.create(
-            model="gpt-5.4-mini",  # 推荐快速模型
+            model="gpt-5.5",  # 推荐快速模型
             messages=[
                 {"role": "system", "content": system_prompt},
                 {
