@@ -80,6 +80,7 @@ class DisplayNode(Node, QObject):
     @Slot()
     def PublishStandbyUart(self):
         """向 MCU 发送待机指令包（功能码 `0xB2`）。"""
+        self._disarm_periodic_expiry_uart()
         self._publish_uart_packet(0xB2, [])
 
     def _publish_location_hint_uart(self, location: int):
@@ -93,11 +94,37 @@ class DisplayNode(Node, QObject):
             self.get_logger().warn(f"位置 {location} 无法映射到 MCU 冰箱编号，跳过 B0")
             return
         self._publish_uart_packet(0xB0, [mcu_location])
+        self._arm_periodic_expiry_uart(delay_seconds=2.0)
 
     def _publish_all_expiry_uart(self):
         """向 MCU 下发全部有效食材的保质期数据。"""
         payload = self._build_expiry_payload()
         self._publish_uart_packet(0xB1, payload)
+
+    def _arm_periodic_expiry_uart(self, delay_seconds: float = 2.0):
+        """启用 B1 周期发送，并设置延迟生效时间。"""
+        start_time = time.monotonic() + max(0.0, float(delay_seconds))
+        with self._uart_b1_control_lock:
+            self._b1_periodic_enabled = True
+            self._b1_periodic_start_monotonic = start_time
+        self.get_logger().info(
+            f"B1 周期发送已启用，将在 {max(0.0, float(delay_seconds)):.1f} 秒后开始"
+        )
+
+    def _disarm_periodic_expiry_uart(self):
+        """停用 B1 周期发送（例如进入待机时）。"""
+        with self._uart_b1_control_lock:
+            self._b1_periodic_enabled = False
+            self._b1_periodic_start_monotonic = 0.0
+        self.get_logger().info("B1 周期发送已停用")
+
+    def _should_publish_periodic_expiry_uart(self) -> bool:
+        """判断当前是否允许发送周期性 B1。"""
+        now = time.monotonic()
+        with self._uart_b1_control_lock:
+            return self._b1_periodic_enabled and (
+                now >= self._b1_periodic_start_monotonic
+            )
 
     def _publish_uart_packet(self, func_code: int, payload: List[int]):
         """发布串口透传消息到 `/uart/data`。
@@ -204,6 +231,9 @@ class DisplayNode(Node, QObject):
         self._inventory_refresh_lock = threading.Lock()
         self._inventory_refresh_epoch = 0
         self._inventory_refresh_pending = 0
+        self._uart_b1_control_lock = threading.Lock()
+        self._b1_periodic_enabled = False
+        self._b1_periodic_start_monotonic = 0.0
 
     def init_mqtt_connect(self):
         """初始化 MQTT 连接并注册舌诊结果回调。"""
@@ -348,7 +378,8 @@ class DisplayNode(Node, QObject):
 
         if should_publish:
             self.data_updated.emit(self.ingredient[:])
-            self._publish_all_expiry_uart()
+            if self._should_publish_periodic_expiry_uart():
+                self._publish_all_expiry_uart()
 
     @Slot()
     def StartReasoning(self):
