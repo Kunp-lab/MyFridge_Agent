@@ -38,7 +38,6 @@ class SqlServerNode : public rclcpp::Node
     void
     on_position_update(const std_msgs::msg::Int16MultiArray::SharedPtr msg);
     void on_clock_update(const std_msgs::msg::Int16MultiArray::SharedPtr msg);
-    bool update_last_added_ingredient_location(int location);
     bool delete_ingredient_by_location(int location);
     bool apply_expiry_offset_to_all(int day_delta);
     bool increase_all_expiry_days(int day_delta);

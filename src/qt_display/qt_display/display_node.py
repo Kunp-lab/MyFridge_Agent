@@ -31,6 +31,7 @@ class DisplayNode(Node, QObject):
     food_recognition_updated = Signal(str)
 
     def __init__(self, name: str):
+        """初始化显示节点并建立 ROS、LLM 与 MQTT 通道。"""
         Node.__init__(self, node_name=name)  # 先初始化 Node
         QObject.__init__(self)
         self.cv_bridge: CvBridge = CvBridge()
@@ -64,6 +65,11 @@ class DisplayNode(Node, QObject):
 
     @Slot(bool)
     def PublishQdriverControl(self, enabled: bool):
+        """发布 Qdriver 启停控制指令。
+
+        Args:
+            enabled: `True` 表示启用，`False` 表示关闭。
+        """
         msg = Bool()
         msg.data = bool(enabled)
         self.publishers_qdriver_control_.publish(msg)
@@ -73,9 +79,15 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def PublishStandbyUart(self):
+        """向 MCU 发送待机指令包（功能码 `0xB2`）。"""
         self._publish_uart_packet(0xB2, [])
 
     def _publish_location_hint_uart(self, location: int):
+        """向 MCU 发送位置提示指令。
+
+        Args:
+            location: UI 九宫格位置（1-9）。
+        """
         mcu_location = self._map_ui_location_to_mcu_hint(location)
         if mcu_location is None:
             self.get_logger().warn(f"位置 {location} 无法映射到 MCU 冰箱编号，跳过 B0")
@@ -83,10 +95,17 @@ class DisplayNode(Node, QObject):
         self._publish_uart_packet(0xB0, [mcu_location])
 
     def _publish_all_expiry_uart(self):
+        """向 MCU 下发全部有效食材的保质期数据。"""
         payload = self._build_expiry_payload()
         self._publish_uart_packet(0xB1, payload)
 
     def _publish_uart_packet(self, func_code: int, payload: List[int]):
+        """发布串口透传消息到 `/uart/data`。
+
+        Args:
+            func_code: 串口协议功能码。
+            payload: 功能码后的数据字段（按 `uint8` 发送）。
+        """
         msg = UInt8MultiArray()
         msg.data = [self._to_uint8(func_code)]
         msg.data.extend(self._to_uint8(item) for item in payload)
@@ -96,6 +115,11 @@ class DisplayNode(Node, QObject):
         )
 
     def _build_expiry_payload(self) -> List[int]:
+        """构建 MCU 保质期上报负载。
+
+        Returns:
+            长度为 7 的保质期数组，索引与 MCU 冰箱格映射一致。
+        """
         payload = [0] * 7
         for idx, item in enumerate(self.ingredient, start=1):
             mapped_location = self._map_ui_location_to_mcu_expiry(idx)
@@ -109,6 +133,14 @@ class DisplayNode(Node, QObject):
         return payload
 
     def _map_ui_location_to_mcu_hint(self, location: int) -> Optional[int]:
+        """将 UI 位置映射为 MCU 的提示位置编号。
+
+        Args:
+            location: UI 九宫格位置（1-9）。
+
+        Returns:
+            MCU 位置编号；无法映射时返回 `None`。
+        """
         return {
             1: 1,
             2: 2,
@@ -122,6 +154,14 @@ class DisplayNode(Node, QObject):
         }.get(location)
 
     def _map_ui_location_to_mcu_expiry(self, location: int) -> Optional[int]:
+        """将 UI 位置映射为 MCU 保质期字段编号。
+
+        Args:
+            location: UI 九宫格位置（1-9）。
+
+        Returns:
+            MCU 字段编号；`B1` 仅支持 1-7，超出返回 `None`。
+        """
         # B1 only has seven expiry fields; UI slots after 7 are intentionally ignored.
         return {
             1: 1,
@@ -134,12 +174,15 @@ class DisplayNode(Node, QObject):
         }.get(location)
 
     def _clamp_expiry_days(self, expiry_days: int) -> int:
+        """将保质期天数限制到协议允许范围。"""
         return max(0, min(20, int(expiry_days)))
 
     def _to_uint8(self, value: int) -> int:
+        """将整数收敛到 `uint8` 范围。"""
         return max(0, min(255, int(value)))
 
     def init_threads(self):
+        """初始化任务并发控制所需的锁与状态变量。"""
         self._image_lock = threading.Lock()
         self._reasoning_lock = threading.Lock()
         self._reasoning_in_progress = False
@@ -163,7 +206,9 @@ class DisplayNode(Node, QObject):
         self._inventory_refresh_pending = 0
 
     def init_mqtt_connect(self):
+        """初始化 MQTT 连接并注册舌诊结果回调。"""
         def on_connect(client, userdata, flags, reason_code, properties=None):
+            """MQTT 连接成功回调：订阅舌诊结果主题。"""
             self.get_logger().info(f"[*] 已连接到 Broker")
             client.subscribe(Setting.TOPIC_RECEIVE.value)
             self.get_logger().info(
@@ -171,6 +216,7 @@ class DisplayNode(Node, QObject):
             )
 
         def on_message(client, userdata, msg):
+            """MQTT 消息回调：处理舌诊结果负载。"""
             self.get_logger().info(f"[√] 收到来自 {msg.topic} 的舌诊推送")
             self._handle_tongue_result_message(msg.payload)
 
@@ -197,6 +243,11 @@ class DisplayNode(Node, QObject):
         self.get_logger().info(f"[*] 连接状态: {self.Ton_server.is_connected()}")
 
     def ImageCallback(self, msg):
+        """接收压缩图像并更新界面显示缓存。
+
+        Args:
+            msg: ROS 压缩图像消息。
+        """
         cv_image = self.cv_bridge.compressed_imgmsg_to_cv2(msg)
         rgb_image = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
         with self._image_lock:
@@ -206,6 +257,7 @@ class DisplayNode(Node, QObject):
         self.image_updated.emit(qimage.copy())
 
     def timer_callback(self):
+        """定时刷新库存数据，并在一轮结束后同步到界面和 MCU。"""
         if not self.clients_sql.wait_for_service(0.5):
             self.get_logger().warn("服务 /sql_operation 未上线，跳过本轮库存刷新")
             return
@@ -222,6 +274,13 @@ class DisplayNode(Node, QObject):
             self.SqlOpSend_(location, self.SymCallback_, refresh_epoch)
 
     def SqlOpSend_(self, location: int, callback, refresh_epoch: Optional[int] = None):
+        """发起单格库存查询异步请求。
+
+        Args:
+            location: 查询位置（1-9）。
+            callback: 请求完成后的回调函数。
+            refresh_epoch: 当前刷新轮次标识；为空表示不参与轮次管理。
+        """
         try:
             request = SQLOperation.Request()
             request.operation = 4
@@ -236,6 +295,12 @@ class DisplayNode(Node, QObject):
                 self._finish_inventory_refresh_slot(refresh_epoch)
 
     def SymCallback_(self, future, refresh_epoch: Optional[int] = None):
+        """处理库存查询返回并更新对应格位缓存。
+
+        Args:
+            future: 异步服务调用句柄。
+            refresh_epoch: 刷新轮次标识，用于过滤过期结果。
+        """
         try:
             if refresh_epoch is not None and not self._is_current_inventory_refresh(
                 refresh_epoch
@@ -261,10 +326,16 @@ class DisplayNode(Node, QObject):
                 self._finish_inventory_refresh_slot(refresh_epoch)
 
     def _is_current_inventory_refresh(self, refresh_epoch: int) -> bool:
+        """判断给定轮次是否仍为当前库存刷新轮次。"""
         with self._inventory_refresh_lock:
             return refresh_epoch == self._inventory_refresh_epoch
 
     def _finish_inventory_refresh_slot(self, refresh_epoch: int):
+        """标记一个库存格位刷新结束，并在整轮完成后触发发布。
+
+        Args:
+            refresh_epoch: 刷新轮次标识。
+        """
         should_publish = False
         with self._inventory_refresh_lock:
             if refresh_epoch != self._inventory_refresh_epoch:
@@ -281,6 +352,7 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def StartReasoning(self):
+        """启动一次食材识别任务（含位置分配与状态提示）。"""
         with self._image_lock:
             if self.image_temp is None:
                 self.get_logger().warn("暂无可识别图像，已跳过本次识别")
@@ -324,6 +396,7 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def StartRecommend(self):
+        """启动一次营养与菜谱推荐任务。"""
         with self._recommend_lock:
             if self._recommend_in_progress:
                 self.get_logger().info("推荐任务仍在进行中，忽略重复触发")
@@ -342,6 +415,7 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def StartTongueDiagnosis(self):
+        """启动一次舌诊任务并等待 MQTT 结果回传。"""
         with self._image_lock:
             if self.image_temp is None:
                 self.tongue_health_updated.emit("暂无可用于舌诊的图像，请先调整摄像头画面。")
@@ -368,6 +442,7 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def CancelReasoning(self):
+        """取消当前食材识别等待，后续同轮结果将忽略。"""
         with self._reasoning_lock:
             if not self._reasoning_in_progress:
                 return
@@ -377,6 +452,7 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def CancelRecommend(self):
+        """取消当前推荐等待，后续同轮结果将忽略。"""
         with self._recommend_lock:
             if not self._recommend_in_progress:
                 return
@@ -386,6 +462,7 @@ class DisplayNode(Node, QObject):
 
     @Slot()
     def CancelTongueDiagnosis(self):
+        """取消当前舌诊等待，必要时忽略下一条结果消息。"""
         with self._tongue_lock:
             if not self._tongue_in_progress:
                 return
@@ -397,18 +474,26 @@ class DisplayNode(Node, QObject):
         self.get_logger().info("已取消舌诊等待，后续结果将忽略")
 
     def _is_reasoning_active_epoch(self, epoch: int) -> bool:
+        """判断食材识别轮次是否仍有效。"""
         with self._reasoning_lock:
             return self._reasoning_in_progress and self._reasoning_epoch == epoch
 
     def _is_recommend_active_epoch(self, epoch: int) -> bool:
+        """判断推荐任务轮次是否仍有效。"""
         with self._recommend_lock:
             return self._recommend_in_progress and self._recommend_epoch == epoch
 
     def _is_tongue_active_epoch(self, epoch: int) -> bool:
+        """判断舌诊任务轮次是否仍有效。"""
         with self._tongue_lock:
             return self._tongue_in_progress and self._tongue_epoch == epoch
 
     def _run_recommend_task(self, task_epoch: int):
+        """后台执行推荐请求并回传文本结果。
+
+        Args:
+            task_epoch: 当前任务轮次标识。
+        """
         try:
             result = self._request_recommend_result()
             if not self._is_recommend_active_epoch(task_epoch):
@@ -429,6 +514,12 @@ class DisplayNode(Node, QObject):
                     self._recommend_in_progress = False
 
     def _run_tongue_task(self, image: np.ndarray, task_epoch: int):
+        """后台执行舌诊图片发送流程。
+
+        Args:
+            image: 待发送的 RGB 图像。
+            task_epoch: 当前任务轮次标识。
+        """
         try:
             self._publish_tongue_image(image)
             if not self._is_tongue_active_epoch(task_epoch):
@@ -447,6 +538,13 @@ class DisplayNode(Node, QObject):
                     self._tongue_waiting_result = False
 
     def _run_reasoning_task(self, image: np.ndarray, location: int, task_epoch: int):
+        """后台执行食材识别与结果写库流程。
+
+        Args:
+            image: 待识别图像。
+            location: 预分配冰箱位置。
+            task_epoch: 当前任务轮次标识。
+        """
         submitted = False
         try:
             result = self._request_reasoning_result(image)
@@ -481,6 +579,7 @@ class DisplayNode(Node, QObject):
                     self._reasoning_in_progress = False
 
     def _is_server_overloaded_error(self, error: Exception) -> bool:
+        """判断异常是否属于服务过载类错误（如 429）。"""
         status_code = getattr(error, "status_code", None)
         if status_code == 429:
             return True
@@ -496,6 +595,16 @@ class DisplayNode(Node, QObject):
         )
 
     def _submit_reasoning_result(self, result: dict, location: int, task_epoch: int):
+        """提交识别结果到数据库服务。
+
+        Args:
+            result: 食材识别结构化结果。
+            location: 写入位置。
+            task_epoch: 当前任务轮次标识。
+
+        Returns:
+            `True` 表示请求已成功提交，`False` 表示轮次失效未提交。
+        """
         if not self._is_reasoning_active_epoch(task_epoch):
             return False
 
@@ -520,6 +629,14 @@ class DisplayNode(Node, QObject):
         return True
 
     def _food_submit_callback(self, future, result: dict, location: int, task_epoch: int):
+        """处理食材识别写库回调并更新前端提示。
+
+        Args:
+            future: 写库异步调用句柄。
+            result: 识别结果快照。
+            location: 写入位置。
+            task_epoch: 当前任务轮次标识。
+        """
         try:
             if not self._is_reasoning_active_epoch(task_epoch):
                 return
@@ -549,23 +666,27 @@ class DisplayNode(Node, QObject):
                     self._reasoning_in_progress = False
 
     def _format_location_text(self, location: int) -> str:
+        """将位置编号格式化为带行列信息的中文描述。"""
         row = ((location - 1) // 3) + 1
         col = ((location - 1) % 3) + 1
         return f"推荐放置位置：第 {location} 格（第 {row} 行，第 {col} 列）"
 
     def _format_food_recognition_pending_text(self, location: int) -> str:
+        """生成食材识别进行中的界面提示文案。"""
         return (
             f"{self._format_location_text(location)}\n\n"
             "AI 正在推理中，请稍等..."
         )
 
     def _format_food_recognition_error_text(self, location: int, error_text: str) -> str:
+        """生成食材识别失败的界面提示文案。"""
         return (
             f"{self._format_location_text(location)}\n\n"
             f"{error_text}"
         )
 
     def _format_food_recognition_text(self, result: dict, location: int) -> str:
+        """生成食材识别成功的界面提示文案。"""
         name = str(result.get("名字", "未识别")).strip()
         expiry = str(result.get("保质期", "未识别")).strip()
         nutrition = str(result.get("营养价值", "未识别")).strip()
@@ -580,6 +701,7 @@ class DisplayNode(Node, QObject):
         )
 
     def _refresh_ingredient_slots_from_db(self):
+        """同步读取 1-9 号格位并刷新本地食材缓存。"""
         for location in range(1, 10):
             response = self._query_slot_by_location(location)
             if response is None:
@@ -597,6 +719,14 @@ class DisplayNode(Node, QObject):
                 self.ingredient[idx] = ["", -1, [], []]
 
     def _query_slot_by_location(self, location: int):
+        """按位置查询库存槽位数据。
+
+        Args:
+            location: 待查询位置（1-9）。
+
+        Returns:
+            查询成功返回服务响应对象；失败或超时返回 `None`。
+        """
         if not self.clients_sql.wait_for_service(0.5):
             self.get_logger().warn(f"服务 /sql_operation 未上线,location={location}")
             return None
@@ -621,6 +751,14 @@ class DisplayNode(Node, QObject):
             return None
 
     def _allocate_location(self) -> int:
+        """按游标轮转策略分配一个空闲格位。
+
+        Returns:
+            可用位置编号（1-9）。
+
+        Raises:
+            RuntimeError: 当九宫格已满时抛出异常。
+        """
         with self._location_lock:
             empty_locations = []
             for idx, item in enumerate(self.ingredient, start=1):
@@ -642,6 +780,15 @@ class DisplayNode(Node, QObject):
             return chosen
 
     def _publish_tongue_image(self, image: np.ndarray):
+        """将舌诊图像编码后发布到 MQTT 主题。
+
+        Args:
+            image: 待发送图像（RGB/BGR ndarray）。
+
+        Raises:
+            ValueError: 图像编码失败。
+            RuntimeError: MQTT 发布失败。
+        """
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
         success, encoded = cv2.imencode(".jpg", image, encode_param)
         if not success:
@@ -659,6 +806,14 @@ class DisplayNode(Node, QObject):
         )
 
     def _request_reasoning_result(self, image: np.ndarray):
+        """调用视觉大模型获取食材识别结果。
+
+        Args:
+            image: 待识别图像。
+
+        Returns:
+            解析成功返回结果字典，失败返回 `None`。
+        """
         system_prompt = """你是一个严格的食物分析助手。
         请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
         {
@@ -710,6 +865,11 @@ class DisplayNode(Node, QObject):
         return None
 
     def _request_recommend_result(self):
+        """调用大模型生成营养概括与菜谱推荐。
+
+        Returns:
+            推荐结果字典；无可用数据或失败时返回 `None`。
+        """
         inventory_summary = self._build_inventory_summary()
         if inventory_summary == "当前冰箱中暂无可用食材数据。":
             self.get_logger().warn("暂无库存数据，无法生成推荐")
@@ -787,6 +947,11 @@ class DisplayNode(Node, QObject):
         return None
 
     def _handle_tongue_result_message(self, payload: bytes):
+        """处理 MQTT 推送的舌诊结果消息。
+
+        Args:
+            payload: MQTT 二进制消息体。
+        """
         with self._tongue_lock:
             if self._tongue_ignore_result_count > 0:
                 self._tongue_ignore_result_count -= 1
@@ -815,6 +980,14 @@ class DisplayNode(Node, QObject):
                 self._tongue_in_progress = False
 
     def _format_tongue_result(self, result_data: dict):
+        """格式化舌诊原始结果，并生成写库记录。
+
+        Args:
+            result_data: 舌诊服务返回的 JSON 字典。
+
+        Returns:
+            二元组 `(formatted_text, db_record)`。
+        """
         code = int(result_data.get("code", -1))
         detected_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         result = result_data.get("result") or {}
@@ -878,6 +1051,11 @@ class DisplayNode(Node, QObject):
         return formatted_text, db_record
 
     def _submit_health_status_result(self, result: dict):
+        """将舌诊健康摘要写入数据库。
+
+        Args:
+            result: 健康状态记录字典。
+        """
         if not self.clients_sql.wait_for_service(0.5):
             self.get_logger().warn("服务 /sql_operation 未上线，无法写入健康状态")
             return
@@ -893,6 +1071,7 @@ class DisplayNode(Node, QObject):
         future.add_done_callback(self._health_status_callback)
 
     def _health_status_callback(self, future):
+        """处理健康状态写库异步回调并记录日志。"""
         try:
             response = future.result()
             if response.is_success:
@@ -905,6 +1084,14 @@ class DisplayNode(Node, QObject):
             self.get_logger().error(f"健康状态写库回调失败:{e}")
 
     def _query_recent_health_status(self, limit: int = 5):
+        """查询最近健康状态历史。
+
+        Args:
+            limit: 最多返回的历史记录条数。
+
+        Returns:
+            健康历史列表；失败时返回空列表。
+        """
         if not self.clients_sql.wait_for_service(0.5):
             self.get_logger().warn("服务 /sql_operation 未上线，无法查询健康状态")
             return []
@@ -939,6 +1126,7 @@ class DisplayNode(Node, QObject):
             return []
 
     def _build_tongue_error_summary(self, code: int) -> str:
+        """将舌诊错误码映射为可读提示文本。"""
         error_map = {
             201: "图片不符合采集要求，请确保舌头完整、清晰并位于画面中心。",
             202: "图片质量不足，请改善光线或重新拍摄后再试。",
@@ -948,6 +1136,7 @@ class DisplayNode(Node, QObject):
     def _infer_health_status(
         self, tongue_color: str, coating_color: str, thickness: str, rot_greasy: str
     ) -> str:
+        """基于舌象要素推断健康状态标签。"""
         risk_tokens = ["青紫", "灰黑", "黄苔", "厚", "腻", "腐", "绛"]
         stable_tokens = ["淡红", "红舌", "白苔", "薄"]
 
@@ -959,6 +1148,15 @@ class DisplayNode(Node, QObject):
         return "舌象有待复查"
 
     def _map_tongue_feature(self, field: str, value) -> str:
+        """将舌诊特征编码转换为中文描述。
+
+        Args:
+            field: 特征字段名。
+            value: 原始编码值。
+
+        Returns:
+            归一化后的中文描述文本。
+        """
         mapping = {
             "tongue_color": {
                 0: "淡白舌",
@@ -992,6 +1190,14 @@ class DisplayNode(Node, QObject):
         return mapping[field].get(code, f"未知编码({code})")
 
     def _normalize_tongue_code(self, value) -> Optional[int]:
+        """将舌诊特征值归一化为整数编码。
+
+        Args:
+            value: 原始输入值。
+
+        Returns:
+            可解析时返回整数，否则返回 `None`。
+        """
         if isinstance(value, bool):
             return int(value)
         if isinstance(value, int):
@@ -1009,6 +1215,7 @@ class DisplayNode(Node, QObject):
     def _build_health_lifestyle_tip(
         self, tongue_color: str, coating_color: str, thickness: str, rot_greasy: str
     ) -> str:
+        """依据舌象信息生成温和饮食与生活方式建议。"""
         tips = []
         joined = f"{tongue_color}|{coating_color}|{thickness}|{rot_greasy}"
 
@@ -1026,6 +1233,7 @@ class DisplayNode(Node, QObject):
         return "；".join(tips)
 
     def _format_health_history_item(self, item: dict) -> str:
+        """格式化单条健康历史记录为摘要文本。"""
         raw = item.get("health_raw_json")
         if isinstance(raw, dict):
             result = raw.get("result") or {}
@@ -1049,6 +1257,7 @@ class DisplayNode(Node, QObject):
         return summary if summary else "未查询到"
 
     def _build_health_diet_guidance(self) -> str:
+        """汇总近期健康检测记录并生成推荐辅助上下文。"""
         history = self._query_recent_health_status(limit=3)
         if not history:
             return "暂无健康检测数据，可按均衡饮食原则推荐。"
@@ -1086,6 +1295,7 @@ class DisplayNode(Node, QObject):
         )
 
     def _resolve_nutrition_summary_with_health(self, health_guidance: str) -> str:
+        """从健康指导文本中提炼营养概括兜底内容。"""
         text = str(health_guidance).strip()
         if not text or "暂无健康检测数据" in text:
             return "未查询到"
@@ -1105,6 +1315,14 @@ class DisplayNode(Node, QObject):
         return "未查询到"
 
     def _extract_message_content(self, response) -> Optional[str]:
+        """从模型响应对象中提取纯文本内容。
+
+        Args:
+            response: 模型 SDK 返回对象。
+
+        Returns:
+            提取到的文本；不存在时返回 `None`。
+        """
         try:
             message = response.choices[0].message
         except Exception:
@@ -1128,6 +1346,17 @@ class DisplayNode(Node, QObject):
         return None
 
     def _parse_json_response(self, raw_content: str) -> dict:
+        """从模型文本中解析 JSON 对象。
+
+        Args:
+            raw_content: 模型返回原文。
+
+        Returns:
+            解析后的字典对象。
+
+        Raises:
+            ValueError: 未能解析出合法 JSON。
+        """
         text = raw_content.strip()
         if not text:
             raise ValueError("模型返回内容为空")
@@ -1148,6 +1377,7 @@ class DisplayNode(Node, QObject):
         raise ValueError(f"未找到合法 JSON，原始返回: {text[:200]}")
 
     def _build_inventory_summary(self) -> str:
+        """将当前库存缓存整理为推荐提示文本。"""
         summary_lines = []
         for idx, item in enumerate(self.ingredient, start=1):
             name = item[0].strip() if isinstance(item[0], str) else ""
@@ -1168,6 +1398,7 @@ class DisplayNode(Node, QObject):
         return "\n".join(summary_lines)
 
     def _normalize_text_field(self, value) -> str:
+        """归一化文本字段，统一空值显示。"""
         if isinstance(value, list):
             text_parts = [str(item).strip() for item in value if str(item).strip()]
             return "；".join(text_parts) if text_parts else "未查询到"
@@ -1179,6 +1410,7 @@ class DisplayNode(Node, QObject):
         return text if text else "未查询到"
 
     def _build_hangzhou_context(self) -> str:
+        """生成杭州场景下的季节气候上下文描述。"""
         now = datetime.now()
         month = now.month
         day = now.day
@@ -1203,6 +1435,7 @@ class DisplayNode(Node, QObject):
         )
 
     def _format_recommend_result_text(self, result: dict) -> str:
+        """格式化推荐结果为前端展示文本。"""
         nutrition = str(result.get("近几天的营养状况概括", "未查询到")).strip()
         recipe1 = str(result.get("推荐食谱1", "未查询到")).strip()
         recipe2 = str(result.get("推荐食谱2", "未查询到")).strip()
@@ -1216,10 +1449,18 @@ class DisplayNode(Node, QObject):
     def encode_opencv_image(
         self, image: np.ndarray, format: str = ".jpg", quality: int = 85
     ) -> str:
-        """
-        把 OpenCV 图像 (numpy array) 直接转为 base64
-        format: ".jpg" 或 ".png"
-        quality: jpg 压缩质量 (1-100)，越低越小越快
+        """将 OpenCV 图像编码为 base64 字符串。
+
+        Args:
+            image: OpenCV 图像（ndarray）。
+            format: 输出格式，支持 `.jpg` 或 `.png`。
+            quality: JPEG 压缩质量（1-100）。
+
+        Returns:
+            base64 编码后的图像字符串。
+
+        Raises:
+            ValueError: 图像编码失败。
         """
         if format.lower() == ".png":
             success, encoded = cv2.imencode(".png", image)
@@ -1239,11 +1480,17 @@ class RosWorker(QThread):
     data_updated = Signal(list)
 
     def __init__(self, node: DisplayNode):
+        """初始化 ROS 工作线程。
+
+        Args:
+            node: 需要在子线程中 spin 的显示节点实例。
+        """
         super().__init__()
         self.node = node
         self.daemon = True
 
     def run(self):
+        """运行 ROS 事件循环。"""
         try:
             rclpy.spin(self.node)
         except:
@@ -1251,10 +1498,12 @@ class RosWorker(QThread):
             sys.exit(0)
 
     def stop(self):
+        """停止 ROS 并退出进程。"""
         rclpy.shutdown
         sys.exit(0)
 
     def getIngredient(self):
+        """返回节点当前的食材缓存列表。"""
         if len(self.node.ingredient) != 0:
             return self.node.ingredient
         pass
