@@ -76,8 +76,8 @@ class StandbyScreen(QWidget):
         super().__init__()
         self.setObjectName("StandbyScreen")
         self.current_time = QTime.currentTime()
-        self.display_temp = 4.0
-        self.display_humidity = 78.0
+        self.display_temp = 29.0
+        self.display_humidity = 30.0
         self._energy_min_watt = 35.0
         self._energy_max_watt = 120.0
         self._energy_watt = random.uniform(self._energy_min_watt, 95.0)
@@ -242,8 +242,8 @@ class StandbyScreen(QWidget):
         return (self._energy_watt - self._energy_min_watt) / span
 
     def _temp_ratio(self) -> float:
-        min_temp = -2.0
-        max_temp = 10.0
+        min_temp = 20.0
+        max_temp = 35.0
         span = max_temp - min_temp
         if span <= 0:
             return 0.0
@@ -251,7 +251,7 @@ class StandbyScreen(QWidget):
         return max(0.0, min(1.0, value))
 
     def _humidity_ratio(self) -> float:
-        min_humidity = 35.0
+        min_humidity = 20.0
         max_humidity = 95.0
         span = max_humidity - min_humidity
         if span <= 0:
@@ -1488,8 +1488,8 @@ class SmartFridgeUI(QMainWindow):
         self.food_recognition_loading = False
         self.recommend_loading = False
         self.tongue_health_loading = False
-        self.mock_temp = 4.0
-        self.mock_humidity = 78.0
+        self.mock_temp = 29.0
+        self.mock_humidity = 30.0
         self.is_test = True  # 开机 10 秒后是否展示测试弹窗
 
         # 使用 StackedWidget 来管理 3 个页面
@@ -1874,13 +1874,13 @@ class SmartFridgeUI(QMainWindow):
         no_move_probability = 0.35
         if random.random() >= no_move_probability:
             self.mock_temp += random.uniform(-0.3, 0.3)
-            self.mock_temp = max(-2.0, min(10.0, self.mock_temp))
+            self.mock_temp = max(20.0, min(35.0, self.mock_temp))
         self.set_environment(self.mock_temp, self.mock_humidity)
 
     def _update_random_humidity(self):
         """每 7 秒更新一次湿度，单次变化在 ±0.2 内"""
         self.mock_humidity += random.uniform(-0.2, 0.2)
-        self.mock_humidity = max(35.0, min(95.0, self.mock_humidity))
+        self.mock_humidity = max(20.0, min(95.0, self.mock_humidity))
         self.set_environment(self.mock_temp, self.mock_humidity)
 
     def set_environment(self, temp: float, humidity: float):
@@ -1898,7 +1898,7 @@ class SmartFridgeUI(QMainWindow):
         if not getattr(self, "is_test", False):
             return
 
-        self.mock_temp = 20.0
+        self.mock_temp = 29.0
         self.set_environment(self.mock_temp, self.mock_humidity)
         if getattr(self, "is_test", False):
             self.standby_page.start_test_energy_ramp()

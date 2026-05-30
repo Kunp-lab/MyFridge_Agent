@@ -881,7 +881,6 @@ class DisplayNode(Node, QObject):
             "可优先选择易消化、少油腻的食物，减轻饮食负担"
         )
         formatted_text = (
-            f"健康检测时间：{detected_at}\n"
             f"检测结论：{status}\n"
             "舌色：淡红舌\n"
             "苔色：灰黑苔\n"
