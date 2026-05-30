@@ -1741,6 +1741,10 @@ class SmartFridgeUI(QMainWindow):
         self.food_recognition_loading = False
 
     def _show_tongue_health_dialog(self, text: str, loading: bool = False):
+        stream_loading_prefix = "AI 正在推理中，请稍等..."
+        if text.startswith(stream_loading_prefix):
+            loading = True
+
         if not loading and (
             "正在等待健康检测结果" in text or "舌诊图片已发送" in text
         ):

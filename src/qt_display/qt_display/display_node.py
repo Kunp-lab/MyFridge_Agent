@@ -564,6 +564,10 @@ class DisplayNode(Node, QObject):
             image: 待发送的 RGB 图像。
             task_epoch: 当前任务轮次标识。
         """
+        if self.test_mode:
+            self._run_tongue_task_test_mode(task_epoch)
+            return
+
         try:
             self._publish_tongue_image(image)
             if not self._is_tongue_active_epoch(task_epoch):
@@ -576,6 +580,27 @@ class DisplayNode(Node, QObject):
             self.get_logger().error(f"舌诊任务执行失败:{e}")
             if self._is_tongue_active_epoch(task_epoch):
                 self.tongue_health_updated.emit("健康检测发送失败，请稍后重试。")
+            with self._tongue_lock:
+                if self._tongue_epoch == task_epoch:
+                    self._tongue_in_progress = False
+                    self._tongue_waiting_result = False
+
+    def _run_tongue_task_test_mode(self, task_epoch: int):
+        """测试模式下执行舌诊流程：固定延迟后流式输出本地结果。"""
+        try:
+            self.get_logger().info("测试模式启用：跳过健康检测云端推理，2秒后返回本地固定结果")
+            time.sleep(2.0)
+            if not self._is_tongue_active_epoch(task_epoch):
+                return
+
+            formatted_text, db_record = self._build_test_tongue_result()
+            self._submit_health_status_result(db_record)
+            self._stream_tongue_health_text(formatted_text, task_epoch)
+        except Exception as e:
+            self.get_logger().error(f"健康检测测试模式执行失败:{e}")
+            if self._is_tongue_active_epoch(task_epoch):
+                self.tongue_health_updated.emit("健康检测任务执行失败，请稍后再试。")
+        finally:
             with self._tongue_lock:
                 if self._tongue_epoch == task_epoch:
                     self._tongue_in_progress = False
@@ -769,6 +794,17 @@ class DisplayNode(Node, QObject):
             loading_prefix=self._STREAM_LOADING_PREFIX,
         )
 
+    def _stream_tongue_health_text(self, text: str, task_epoch: int) -> bool:
+        """以流式节奏输出健康检测结果文本（支持取消）。"""
+        return self._stream_emit_text(
+            text=text,
+            emit_fn=self.tongue_health_updated.emit,
+            is_active_fn=self._is_tongue_active_epoch,
+            epoch=task_epoch,
+            chunk_size=4,
+            loading_prefix=self._STREAM_LOADING_PREFIX,
+        )
+
     def _stream_emit_text(
         self,
         text: str,
@@ -834,6 +870,43 @@ class DisplayNode(Node, QObject):
             time.sleep(sleep_s)
 
         return True
+
+    def _build_test_tongue_result(self):
+        """构建测试模式下的固定舌诊文本与写库记录。"""
+        detected_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        status = "舌象需关注"
+        summary = (
+            "舌色为淡红舌；舌苔颜色为灰黑苔；厚薄表现为舌苔偏厚；腻腐表现为舌苔腻。"
+            "饮食参考：近期饮食宜清淡，少辛辣油炸，多补充水分；"
+            "可优先选择易消化、少油腻的食物，减轻饮食负担"
+        )
+        formatted_text = (
+            f"健康检测时间：{detected_at}\n"
+            f"检测结论：{status}\n"
+            "舌色：淡红舌\n"
+            "苔色：灰黑苔\n"
+            "厚薄：舌苔偏厚\n"
+            "腻腐：舌苔腻\n"
+            f"提示：{summary}"
+        )
+        db_record = {
+            "detected_at": detected_at,
+            "health_status": status,
+            "health_summary": summary,
+            "health_raw_json": json.dumps(
+                {
+                    "code": 1,
+                    "result": {
+                        "tongue_color": 1,
+                        "coating_color": 2,
+                        "thickness": 1,
+                        "rot_greasy": 0,
+                    },
+                },
+                ensure_ascii=False,
+            ),
+        }
+        return formatted_text, db_record
 
     def _refresh_ingredient_slots_from_db(self):
         """同步读取 1-9 号格位并刷新本地食材缓存。"""
