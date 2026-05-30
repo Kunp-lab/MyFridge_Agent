@@ -14,7 +14,7 @@ import os
 from openai import OpenAI
 from PySide6.QtGui import QImage
 import json
-from typing import List, Optional
+from typing import Callable, List, Optional
 from .config import Setting
 import paho.mqtt.client as mqtt
 import time
@@ -29,6 +29,7 @@ class DisplayNode(Node, QObject):
     recommend_updated = Signal(str)
     tongue_health_updated = Signal(str)
     food_recognition_updated = Signal(str)
+    _STREAM_LOADING_PREFIX = "AI 正在推理中，请稍等..."
 
     def __init__(self, name: str):
         """初始化显示节点并建立 ROS、LLM 与 MQTT 通道。"""
@@ -54,6 +55,9 @@ class DisplayNode(Node, QObject):
         self.publishers_uart_data_ = self.create_publisher(
             UInt8MultiArray, "/uart/data", qos_profile=10
         )
+        self.declare_parameter("test_mode", False)
+        self.test_mode = bool(self.get_parameter("test_mode").value)
+        self.get_logger().info(f"测试模式: {'开启' if self.test_mode else '关闭'}")
         self.ingredient = [["", -1, [], []] for _ in range(9)]
         self.LLM_server = OpenAI(
             api_key=Setting.API_KEY.value,
@@ -538,7 +542,12 @@ class DisplayNode(Node, QObject):
                 self.recommend_updated.emit("暂未生成推荐，请稍后再试。")
                 return
 
-            self.recommend_updated.emit(self._format_recommend_result_text(result))
+            formatted_text = self._format_recommend_result_text(result)
+            if self.test_mode:
+                self._stream_recommend_text(formatted_text, task_epoch)
+                return
+
+            self.recommend_updated.emit(formatted_text)
         except Exception as e:
             self.get_logger().error(f"推荐任务执行失败:{e}")
             if self._is_recommend_active_epoch(task_epoch):
@@ -685,9 +694,12 @@ class DisplayNode(Node, QObject):
                 )
                 return
 
-            self.food_recognition_updated.emit(
-                self._format_food_recognition_text(result, location)
-            )
+            formatted_text = self._format_food_recognition_text(result, location)
+            if self.test_mode:
+                self._stream_food_recognition_text(formatted_text, task_epoch)
+                return
+
+            self.food_recognition_updated.emit(formatted_text)
         except Exception as e:
             self.get_logger().error(f"食材识别结果回调失败:{e}")
             self.food_recognition_updated.emit(
@@ -734,6 +746,94 @@ class DisplayNode(Node, QObject):
             f"营养价值：{nutrition}\n"
             f"食用建议：{notes}"
         )
+
+    def _stream_food_recognition_text(self, text: str, task_epoch: int) -> bool:
+        """以流式节奏输出食材识别结果文本（支持取消）。"""
+        return self._stream_emit_text(
+            text=text,
+            emit_fn=self.food_recognition_updated.emit,
+            is_active_fn=self._is_reasoning_active_epoch,
+            epoch=task_epoch,
+            chunk_size=4,
+            loading_prefix=self._STREAM_LOADING_PREFIX,
+        )
+
+    def _stream_recommend_text(self, text: str, task_epoch: int) -> bool:
+        """以流式节奏输出推荐结果文本（支持取消）。"""
+        return self._stream_emit_text(
+            text=text,
+            emit_fn=self.recommend_updated.emit,
+            is_active_fn=self._is_recommend_active_epoch,
+            epoch=task_epoch,
+            chunk_size=5,
+            loading_prefix=self._STREAM_LOADING_PREFIX,
+        )
+
+    def _stream_emit_text(
+        self,
+        text: str,
+        emit_fn: Callable[[str], None],
+        is_active_fn: Callable[[int], bool],
+        epoch: int,
+        chunk_size: int = 8,
+        loading_prefix: str = "",
+    ) -> bool:
+        """将文本按片段逐步输出，模拟模型推理中的流式返回效果。
+
+        Args:
+            text: 需要输出的完整文本。
+            emit_fn: 每次输出片段时调用的信号发送函数。
+            is_active_fn: 检查当前任务轮次是否仍有效的函数。
+            epoch: 当前任务轮次。
+            chunk_size: 单次输出的最大字符数（遇到标点/换行会提前截断）。
+            loading_prefix: 流式阶段附加的前缀（可用于前端保持 loading 状态）。
+
+        Returns:
+            `True` 表示完整输出；`False` 表示中途被取消。
+        """
+        full_text = str(text)
+        if not full_text:
+            emit_fn("")
+            return True
+
+        idx = 0
+        text_len = len(full_text)
+        punctuation = "，。；：！？,.!?;:"
+        sentence_end = "。！？.!?"
+
+        while idx < text_len:
+            if not is_active_fn(epoch):
+                return False
+
+            step = min(max(1, int(chunk_size)), text_len - idx)
+            for offset in range(step):
+                ch = full_text[idx + offset]
+                if ch == "\n" or ch in punctuation:
+                    step = offset + 1
+                    break
+
+            idx += step
+            chunk_text = full_text[:idx]
+            if loading_prefix and idx < text_len:
+                emit_fn(f"{loading_prefix}\n\n{chunk_text}")
+            else:
+                emit_fn(chunk_text)
+
+            if idx >= text_len:
+                break
+
+            tail = full_text[idx - 1]
+            if tail == "\n":
+                sleep_s = 0.24
+            elif tail in sentence_end:
+                sleep_s = 0.20
+            elif tail in punctuation:
+                sleep_s = 0.14
+            else:
+                sleep_s = 0.06
+            time.sleep(sleep_s)
+
+        return True
 
     def _refresh_ingredient_slots_from_db(self):
         """同步读取 1-9 号格位并刷新本地食材缓存。"""
@@ -849,6 +949,16 @@ class DisplayNode(Node, QObject):
         Returns:
             解析成功返回结果字典，失败返回 `None`。
         """
+        if self.test_mode:
+            self.get_logger().info("测试模式启用：跳过云端推理，2秒后返回本地识别结果")
+            time.sleep(2.0)
+            return {
+                "名字": "豆腐",
+                "营养价值": "富含优质植物蛋白、钙和多种矿物质，脂肪含量较低，适合日常补充营养。",
+                "食用建议": "建议冷藏保存并尽快食用，可蒸汤、清蒸或炒制，食用前确认无异味变酸。",
+                "保质期": 2,
+            }
+
         system_prompt = """你是一个严格的食物分析助手。
         请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
         {
@@ -907,6 +1017,34 @@ class DisplayNode(Node, QObject):
         Returns:
             推荐结果字典；无可用数据或失败时返回 `None`。
         """
+        if self.test_mode:
+            self.get_logger().info("测试模式启用：跳过推荐云端推理，3秒后返回本地固定结果")
+            time.sleep(3.0)
+            return {
+                "近几天的营养状况概括": (
+                    "仅基于提供的舌象与现有食材信息：近期记录以舌苔偏厚、偏腻为主，"
+                    "饮食上更适合清淡、少油少辣、补水、易消化；未提供实际家人三餐，"
+                    "不能判断热量和蛋白质是否充足。冰箱中豆腐、鸡蛋可补充优质蛋白，"
+                    "黄瓜、苦瓜适合初夏清爽补水，薏米、莲子适合做清淡粥汤；"
+                    "莲子和豆腐保质期较短，建议优先食用。"
+                ),
+                "推荐食谱1": (
+                    "薏米莲子冬瓜豆腐汤。使用现有食材：莲子、薏米、豆腐。"
+                    "需要购买：冬瓜、少量姜片、葱。做法：薏米提前浸泡2小时，"
+                    "莲子去芯后同煮30分钟，加入冬瓜块继续煮15分钟，最后放入豆腐块煮5分钟，"
+                    "加少量盐和葱花即可。适合初夏偏湿热、食欲不佳时作为清淡汤品，"
+                    "补水、少油、易消化；薏米和莲子一次不宜放太多，脾胃偏弱时更要少量。"
+                ),
+                "推荐食谱2": (
+                    "苦瓜鸡蛋豆腐羹配拍黄瓜。使用现有食材：苦瓜、鸡蛋、豆腐、黄瓜。"
+                    "需要购买：少量蒜、香醋或米醋、低钠盐。做法：苦瓜去瓤切薄片后焯水，"
+                    "豆腐切小块入锅加水煮开，放入苦瓜，淋入打散的鸡蛋成蛋花，加少量盐调味；"
+                    "黄瓜拍碎后加少量香醋和蒜末凉拌，少油或不放油。整体清爽补水，"
+                    "适合初夏气温升高时减轻油腻负担；苦瓜和黄瓜偏清凉，"
+                    "肠胃不适或怕冷时减少生冷用量，可改为黄瓜略焯后食用。"
+                ),
+            }
+
         inventory_summary = self._build_inventory_summary()
         if inventory_summary == "当前冰箱中暂无可用食材数据。":
             self.get_logger().warn("暂无库存数据，无法生成推荐")
@@ -918,9 +1056,9 @@ class DisplayNode(Node, QObject):
         system_prompt = """你是一个严格的厨房营养与食谱推荐助手。
         请严格只返回以下JSON格式,不要添加任何其他文字、解释或markdown:
         {
-        "近几天的营养状况概括": "如果没在传给你的数据里看到就说“未查询到”",
-        "推荐食谱1": "根据冰箱里有的食材的基础，和当前的浙江宁波节气的特点（比如最近湿气有点重）（输出时将节气条件突出一下），给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买",
-        "推荐食谱2": "根据冰箱里有的食材的基础，和当前的浙江宁波节气的特点（比如最近湿气有点重）（输出时将节气条件突出一下），给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买"
+        "近几天的营养状况概括": "",
+        "推荐食谱1": "根据冰箱里有的食材的基础，和当前的宁波节气的特点（比如最近湿气有点重），给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买",
+        "推荐食谱2": "根据冰箱里有的食材的基础，和当前的宁波节气的特点（比如最近湿气有点重），给出食谱，可以适当添加冰箱里未有的食材，但是要写明哪些没有需要购买"
         }"""
         self.get_logger().info(f"{inventory_summary}\n\n\n{current_context}")
         response = self.LLM_server.chat.completions.create(

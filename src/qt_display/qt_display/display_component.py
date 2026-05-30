@@ -1670,6 +1670,10 @@ class SmartFridgeUI(QMainWindow):
         self.ros_worker.node.StartRecommend()
 
     def _show_recommend_dialog(self, text: str, loading: bool = False):
+        stream_loading_prefix = "AI 正在推理中，请稍等..."
+        if text.startswith(stream_loading_prefix):
+            loading = True
+
         self.recommend_loading = loading
         if loading:
             self.vision_page.set_result_text("AI 正在推理中，请稍等......")
