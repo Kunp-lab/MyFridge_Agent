@@ -6,6 +6,9 @@ log/
 #模型
 model/
 .codex
+.openclaw/
+.agents
+.claude
 
 # Python 缓存等常见忽略
 __pycache__/
@@ -26,3 +29,4 @@ venv/
 # macOS / Windows 垃圾文件
 .DS_Store
 Thumbs.db
+

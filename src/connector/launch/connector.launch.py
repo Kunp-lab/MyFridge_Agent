@@ -13,30 +13,20 @@
 # limitations under the License.
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, TextSubstitution
 from launch_ros.actions import Node
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from ament_index_python import get_package_share_directory
-from ament_index_python.packages import get_package_prefix
-import os
 
 def generate_launch_description():
-    # config_file_path = os.path.join(
-    #     get_package_prefix('hobot_usb_cam'),
-    #     "lib/hobot_usb_cam/config/usb_camera_calibration.yaml")
-    # print("config_file_path is ", config_file_path)
-
     return LaunchDescription([
         Node(
             package='connector',
             executable='mcu_connector_node',
-            name='hobot_usb_cam',
+            name='mcu_connector',
+            output='screen',
         ),
         Node(
             package='connector',
             executable='qdriver_connector_node',
-            name='hobot_usb_cam',            
+            name='qdriver_connector',
+            output='screen',
         )
     ])

@@ -16,7 +16,6 @@ from PySide6.QtGui import QImage
 import json
 from typing import Callable, List, Optional
 from .config import Setting
-import paho.mqtt.client as mqtt
 import time
 from datetime import datetime
 import re
@@ -32,7 +31,6 @@ class DisplayNode(Node, QObject):
     _STREAM_LOADING_PREFIX = "AI 正在推理中，请稍等..."
 
     def __init__(self, name: str):
-        """初始化显示节点并建立 ROS、LLM 与 MQTT 通道。"""
         Node.__init__(self, node_name=name)  # 先初始化 Node
         QObject.__init__(self)
         self.cv_bridge: CvBridge = CvBridge()
@@ -55,6 +53,16 @@ class DisplayNode(Node, QObject):
         self.publishers_uart_data_ = self.create_publisher(
             UInt8MultiArray, "/uart/data", qos_profile=10
         )
+        
+        # ROS2 interfaces for tongue diagnosis
+        self.publisher_tongue_image_ = self.create_publisher(
+            CompressedImage, "/tongue_diagnosis/input_image", qos_profile=10
+        )
+        self.subscription_tongue_result_ = self.create_subscription(
+            String, "/tongue_diagnosis/result", self._on_tongue_result, qos_profile=10
+        )
+        self.get_logger().info("✅ ROS2 interfaces initialized for tongue_diagnosis")
+        
         self.declare_parameter("test_mode", False)
         self.test_mode = bool(self.get_parameter("test_mode").value)
         self.get_logger().info(f"测试模式: {'开启' if self.test_mode else '关闭'}")
@@ -63,8 +71,6 @@ class DisplayNode(Node, QObject):
             api_key=Setting.API_KEY.value,
             base_url=Setting.BASE_URL.value,
         )
-        self.Ton_server = mqtt.Client()
-        self.init_mqtt_connect()
         self.init_threads()
 
     @Slot(bool)
@@ -243,42 +249,6 @@ class DisplayNode(Node, QObject):
         self._b1_periodic_enabled = False
         self._b1_periodic_start_monotonic = 0.0
 
-    def init_mqtt_connect(self):
-        """初始化 MQTT 连接并注册舌诊结果回调。"""
-        def on_connect(client, userdata, flags, reason_code, properties=None):
-            """MQTT 连接成功回调：订阅舌诊结果主题。"""
-            self.get_logger().info(f"[*] 已连接到 Broker")
-            client.subscribe(Setting.TOPIC_RECEIVE.value)
-            self.get_logger().info(
-                f"[*] 已订阅话题: {Setting.TOPIC_RECEIVE.value}，等待 AI 回复..."
-            )
-
-        def on_message(client, userdata, msg):
-            """MQTT 消息回调：处理舌诊结果负载。"""
-            self.get_logger().info(f"[√] 收到来自 {msg.topic} 的舌诊推送")
-            self._handle_tongue_result_message(msg.payload)
-
-        self.Ton_server.on_connect = on_connect
-        self.Ton_server.on_message = on_message
-        try:
-            self.Ton_server.connect(Setting.BROKER_IP.value, 1883, 60)
-        except Exception as e:
-            self.get_logger().error(f"[!] 无法连接: {e}")
-            sys.exit(1)
-            return
-        self.Ton_server.loop_start()
-        self.get_logger().info("[*] 正在建立连接...")
-        retry_count = 0
-        while not self.Ton_server.is_connected() and retry_count < 10:
-            time.sleep(0.5)
-            retry_count += 1
-
-        if not self.Ton_server.is_connected():
-            self.get_logger().info("[!] 连接超时，请检查网络或防火墙！")
-            return
-
-        # --- 现在连接已经是 True 了 ---
-        self.get_logger().info(f"[*] 连接状态: {self.Ton_server.is_connected()}")
 
     def ImageCallback(self, msg):
         """接收压缩图像并更新界面显示缓存。
@@ -987,30 +957,41 @@ class DisplayNode(Node, QObject):
             return chosen
 
     def _publish_tongue_image(self, image: np.ndarray):
-        """将舌诊图像编码后发布到 MQTT 主题。
+        """将舌诊图像编码后发布到 ROS2 话题。
 
         Args:
             image: 待发送图像（RGB/BGR ndarray）。
 
         Raises:
             ValueError: 图像编码失败。
-            RuntimeError: MQTT 发布失败。
+            RuntimeError: ROS2 发布失败。
         """
-        encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
-        success, encoded = cv2.imencode(".jpg", image, encode_param)
-        if not success:
-            raise ValueError("舌诊图片编码失败")
-
-        result = self.Ton_server.publish(
-            Setting.TOPIC_SEND.value, payload=encoded.tobytes(), qos=0
-        )
-        result.wait_for_publish()
-        if result.rc != mqtt.MQTT_ERR_SUCCESS:
-            raise RuntimeError(f"MQTT 发布失败，错误码: {result.rc}")
-
-        self.get_logger().info(
-            f"[*] 已将舌诊图像发送到 {Setting.TOPIC_SEND.value}，record_id={Setting.TONGUE_RECORD_ID.value}"
-        )
+        try:
+            # Convert BGR to RGB for consistency
+            if len(image.shape) == 3:
+                rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            else:
+                rgb_image = image
+            
+            # Encode as JPEG
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+            success, encoded = cv2.imencode(".jpg", rgb_image, encode_param)
+            if not success:
+                raise ValueError("舌诊图片编码失败")
+            
+            # Create and publish CompressedImage message
+            msg = CompressedImage()
+            msg.header.stamp = self.get_clock().now().to_msg()
+            msg.header.frame_id = "tongue_diagnosis"
+            msg.format = "jpeg"
+            msg.data = encoded.tobytes()
+            
+            self.publisher_tongue_image_.publish(msg)
+            self.get_logger().info(
+                f"✅ 已将舌诊图像发送到 /tongue_diagnosis/input_image，大小: {len(msg.data)} bytes"
+            )
+        except Exception as e:
+            raise RuntimeError(f"ROS2 发布失败: {e}")
 
     def _request_reasoning_result(self, image: np.ndarray):
         """调用视觉大模型获取食材识别结果。
@@ -1193,34 +1174,40 @@ class DisplayNode(Node, QObject):
             return None
         return None
 
-    def _handle_tongue_result_message(self, payload: bytes):
-        """处理 MQTT 推送的舌诊结果消息。
-
-        Args:
-            payload: MQTT 二进制消息体。
+    def _on_tongue_result(self, msg: String):
         """
-        with self._tongue_lock:
-            if self._tongue_ignore_result_count > 0:
-                self._tongue_ignore_result_count -= 1
-                self._tongue_waiting_result = False
-                self._tongue_in_progress = False
-                self.get_logger().info("舌诊结果已按取消请求忽略")
-                return
-
-            if not self._tongue_in_progress and not self._tongue_waiting_result:
-                self.get_logger().info("收到舌诊结果，但当前无等待任务，已忽略")
-                return
-
-            self._tongue_waiting_result = False
-
+        ROS2 callback when tongue diagnosis result is received.
+        
+        Args:
+            msg: String message containing JSON-formatted diagnosis result
+        """
+        self.get_logger().info(f"[ROS2] 收到舌诊结果")
+        
         try:
-            payload_text = payload.decode("utf-8")
-            result_data = json.loads(payload_text)
+            result_data = json.loads(msg.data)
+            
+            # Check if we should ignore this result
+            with self._tongue_lock:
+                if self._tongue_ignore_result_count > 0:
+                    self._tongue_ignore_result_count -= 1
+                    self._tongue_waiting_result = False
+                    self._tongue_in_progress = False
+                    self.get_logger().info("舌诊结果已按取消请求忽略")
+                    return
+
+                if not self._tongue_in_progress and not self._tongue_waiting_result:
+                    self.get_logger().info("收到舌诊结果，但当前无等待任务，已忽略")
+                    return
+
+                self._tongue_waiting_result = False
+            
+            # Format result and update UI
             formatted_text, db_record = self._format_tongue_result(result_data)
             self._submit_health_status_result(db_record)
             self.tongue_health_updated.emit(formatted_text)
+            
         except Exception as e:
-            self.get_logger().error(f"处理舌诊 MQTT 结果失败:{e}")
+            self.get_logger().error(f"处理舌诊结果失败:{e}")
             self.tongue_health_updated.emit("健康检测结果解析失败，请稍后重试。")
         finally:
             with self._tongue_lock:
