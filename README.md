@@ -9,7 +9,6 @@ The project now follows a more standard ROS2 launch layout:
 
 - `my_fridge_agent_bringup` is the system-level entry point
 - each functional package keeps its own local `launch` file
-- the root-level workflow is centered around full-system bringup rather than starting everything from a single application package
 
 ## What The System Does
 
