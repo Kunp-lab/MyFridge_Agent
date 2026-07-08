@@ -1,19 +1,19 @@
-[English](/home/kunp/TrosWork/CreativeRobot/README.md) | [简体中文](/home/kunp/TrosWork/CreativeRobot/README_cn.md)
+[English](/home/kunp/TrosWork/MyFridge_Agent/README.md) | [简体中文](/home/kunp/TrosWork/MyFridge_Agent/README_cn.md)
 
-# CreativeRobot
+# MyFridge_Agent
 
-`CreativeRobot` 是一个基于 ROS2 的智能膳食管理机器人项目。  
+`MyFridge_Agent` 是一个基于 ROS2 的智能膳食管理机器人项目。  
 它的目标是把冰箱库存管理、食材识别、舌象检测、营养建议和设备联动整合成一套可以实际运行的完整系统。
 
 当前项目采用更标准的 ROS2 启动分层方式：
 
-- `creative_robot_bringup` 作为整机级启动入口
+- `my_fridge_agent_bringup` 作为整机级启动入口
 - 每个功能包保留自己的局部 `launch`
 - 根目录推荐工作流以整机 bringup 为中心，而不是从某个单一应用包里拉起全部节点
 
 ## 系统能做什么
 
-CreativeRobot 面向一个实际的智能冰箱使用场景：
+MyFridge_Agent 面向一个实际的智能冰箱使用场景：
 
 - 记录冰箱中的食材
 - 识别摄像头画面中的食物
@@ -24,7 +24,7 @@ CreativeRobot 面向一个实际的智能冰箱使用场景：
 
 ## 功能包说明
 
-### `src/creative_robot_bringup`
+### `src/my_fridge_agent_bringup`
 
 这是整个机器人的顶层启动包。
 
@@ -116,7 +116,7 @@ CreativeRobot 面向一个实际的智能冰箱使用场景：
 - 执行四个分类分支：舌色、苔色、厚薄、腻腐
 - 将结构化 JSON 结果发布到 `/tongue_diagnosis/result`
 
-这个包仍然支持单独运行，但在正常使用中一般由 `creative_robot_bringup` 统一启动。
+这个包仍然支持单独运行，但在正常使用中一般由 `my_fridge_agent_bringup` 统一启动。
 
 ### `database/`
 
@@ -181,7 +181,7 @@ CreativeRobot 面向一个实际的智能冰箱使用场景：
 ### 1. 编译
 
 ```bash
-cd ~/TrosWork/CreativeRobot
+cd ~/TrosWork/MyFridge_Agent
 colcon build
 source install/setup.bash
 ```
@@ -189,7 +189,7 @@ source install/setup.bash
 ### 2. 启动整机
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py
+ros2 launch my_fridge_agent_bringup bringup.launch.py
 ```
 
 这条命令会启动主要运行栈：
@@ -205,31 +205,31 @@ ros2 launch creative_robot_bringup bringup.launch.py
 启用测试模式：
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py test_mode:=true
+ros2 launch my_fridge_agent_bringup bringup.launch.py test_mode:=true
 ```
 
 临时关闭舌象检测：
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py enable_tongue_diagnosis:=false
+ros2 launch my_fridge_agent_bringup bringup.launch.py enable_tongue_diagnosis:=false
 ```
 
 指定自定义舌诊模型目录：
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py tongue_model_dir:=/your/model/bin
+ros2 launch my_fridge_agent_bringup bringup.launch.py tongue_model_dir:=/your/model/bin
 ```
 
 指定其他 USB 摄像头设备：
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py usb_video_device:=/dev/video0
+ros2 launch my_fridge_agent_bringup bringup.launch.py usb_video_device:=/dev/video0
 ```
 
 查看全部 bringup 参数：
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py --show-args
+ros2 launch my_fridge_agent_bringup bringup.launch.py --show-args
 ```
 
 ## 运行关系
@@ -257,7 +257,7 @@ ros2 launch creative_robot_bringup bringup.launch.py --show-args
 
 ## 关键配置文件
 
-- 整机启动入口：`src/creative_robot_bringup/launch/bringup.launch.py`
+- 整机启动入口：`src/my_fridge_agent_bringup/launch/bringup.launch.py`
 - 界面启动入口：`src/qt_display/launch/qtapp.launch.py`
 - 数据库服务启动入口：`src/sql_server/launch/sql_server.launch.py`
 - 设备桥接启动入口：`src/connector/launch/connector.launch.py`
@@ -273,5 +273,5 @@ ros2 launch creative_robot_bringup bringup.launch.py --show-args
 
 ## 实际建议
 
-- 日常运行优先使用 `creative_robot_bringup`
+- 日常运行优先使用 `my_fridge_agent_bringup`
 - 部署到新环境时，优先检查摄像头设备路径、舌诊模型目录、云端配置和数据库文件权限

@@ -102,7 +102,7 @@ Display节点（RDK）              tongue_diagnosis节点
 
 ### 构建
 ```bash
-cd ~/TrosWork/CreativeRobot
+cd ~/TrosWork/MyFridge_Agent
 colcon build --packages-select tongue_diagnosis
 source install/setup.bash
 ```

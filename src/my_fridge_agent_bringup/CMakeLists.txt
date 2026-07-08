@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(creative_robot_bringup)
+project(my_fridge_agent_bringup)
 
 find_package(ament_cmake REQUIRED)
 

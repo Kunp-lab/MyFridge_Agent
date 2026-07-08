@@ -44,7 +44,7 @@ This package implements an end-to-end tongue diagnosis pipeline:
 ### Build
 
 ```bash
-cd ~/TrosWork/CreativeRobot
+cd ~/TrosWork/MyFridge_Agent
 colcon build --packages-select tongue_diagnosis
 source install/setup.bash
 ```

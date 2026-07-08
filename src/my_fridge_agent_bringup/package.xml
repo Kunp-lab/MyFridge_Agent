@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>creative_robot_bringup</name>
+  <name>my_fridge_agent_bringup</name>
   <version>0.0.0</version>
-  <description>System bringup package for CreativeRobot.</description>
+  <description>System bringup package for MyFridge_Agent.</description>
   <maintainer email="1709038900@qq.com">kunp</maintainer>
   <license>Apache-2.0</license>
 

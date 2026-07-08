@@ -9,9 +9,9 @@
 #include <string>
 
 #if defined(__x86_64__)
-#define DB_ADRESS "/home/kunp/TrosWork/CreativeRobot/database/my_fridge"
+#define DB_ADRESS "/home/kunp/TrosWork/MyFridge_Agent/database/my_fridge"
 #else
-#define DB_ADRESS "/userdata/ros2_ws/CreativeRobot/database/my_fridge"
+#define DB_ADRESS "/userdata/ros2_ws/MyFridge_Agent/database/my_fridge"
 #endif
 namespace CreativeRobot
 {

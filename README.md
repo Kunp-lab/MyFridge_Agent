@@ -1,19 +1,19 @@
-[English](/home/kunp/TrosWork/CreativeRobot/README.md) | [简体中文](/home/kunp/TrosWork/CreativeRobot/README_cn.md)
+[English](/home/kunp/TrosWork/MyFridge_Agent/README.md) | [简体中文](/home/kunp/TrosWork/MyFridge_Agent/README_cn.md)
 
-# CreativeRobot
+# MyFridge_Agent
 
-`CreativeRobot` is a ROS2-based intelligent dietary management robot project.  
+`MyFridge_Agent` is a ROS2-based intelligent dietary management robot project.  
 Its goal is to integrate refrigerator inventory management, food recognition, tongue diagnosis, nutrition guidance, and device coordination into a single runnable system.
 
 The project now follows a more standard ROS2 launch layout:
 
-- `creative_robot_bringup` is the system-level entry point
+- `my_fridge_agent_bringup` is the system-level entry point
 - each functional package keeps its own local `launch` file
 - the root-level workflow is centered around full-system bringup rather than starting everything from a single application package
 
 ## What The System Does
 
-CreativeRobot is designed around a practical smart-fridge scenario:
+MyFridge_Agent is designed around a practical smart-fridge scenario:
 
 - it tracks ingredients stored in the refrigerator
 - it recognizes food items from the camera feed
@@ -24,7 +24,7 @@ CreativeRobot is designed around a practical smart-fridge scenario:
 
 ## Package Overview
 
-### `src/creative_robot_bringup`
+### `src/my_fridge_agent_bringup`
 
 This is the top-level bringup package for the whole robot.
 
@@ -116,7 +116,7 @@ Responsibilities:
 - runs four classification heads: tongue color, coating color, thickness, and greasy / putrefaction state
 - publishes structured JSON results to `/tongue_diagnosis/result`
 
-The package is designed so it can still be launched independently, but in normal usage it is started by `creative_robot_bringup`.
+The package is designed so it can still be launched independently, but in normal usage it is started by `my_fridge_agent_bringup`.
 
 ### `database/`
 
@@ -181,7 +181,7 @@ Typical usage includes:
 ### 1. Build
 
 ```bash
-cd ~/TrosWork/CreativeRobot
+cd ~/TrosWork/MyFridge_Agent
 colcon build
 source install/setup.bash
 ```
@@ -189,7 +189,7 @@ source install/setup.bash
 ### 2. Launch The Full System
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py
+ros2 launch my_fridge_agent_bringup bringup.launch.py
 ```
 
 This command starts the main runtime stack:
@@ -205,31 +205,31 @@ This command starts the main runtime stack:
 Enable test mode:
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py test_mode:=true
+ros2 launch my_fridge_agent_bringup bringup.launch.py test_mode:=true
 ```
 
 Disable tongue diagnosis temporarily:
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py enable_tongue_diagnosis:=false
+ros2 launch my_fridge_agent_bringup bringup.launch.py enable_tongue_diagnosis:=false
 ```
 
 Use a custom tongue-model directory:
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py tongue_model_dir:=/your/model/bin
+ros2 launch my_fridge_agent_bringup bringup.launch.py tongue_model_dir:=/your/model/bin
 ```
 
 Use a different USB camera device:
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py usb_video_device:=/dev/video0
+ros2 launch my_fridge_agent_bringup bringup.launch.py usb_video_device:=/dev/video0
 ```
 
 Show all available bringup arguments:
 
 ```bash
-ros2 launch creative_robot_bringup bringup.launch.py --show-args
+ros2 launch my_fridge_agent_bringup bringup.launch.py --show-args
 ```
 
 ## Runtime Relationships
@@ -257,7 +257,7 @@ If you plan to modify schema, migrations, or persistent data, backing up the dat
 
 ## Key Configuration Files
 
-- system bringup: `src/creative_robot_bringup/launch/bringup.launch.py`
+- system bringup: `src/my_fridge_agent_bringup/launch/bringup.launch.py`
 - UI launch: `src/qt_display/launch/qtapp.launch.py`
 - SQL service launch: `src/sql_server/launch/sql_server.launch.py`
 - connector launch: `src/connector/launch/connector.launch.py`
@@ -273,7 +273,7 @@ If you plan to modify schema, migrations, or persistent data, backing up the dat
 
 ## Practical Recommendation
 
-For normal usage, launch the project through `creative_robot_bringup`.
+For normal usage, launch the project through `my_fridge_agent_bringup`.
 
 When deploying to a new machine or board, verify these first:
 
